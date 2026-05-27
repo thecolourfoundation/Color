@@ -89,7 +89,7 @@ describe("ToolRegistry", () => {
     it("blocks code injection in expression", async () => {
       const tool = registry.get("math_eval")!;
       await expect(tool.executor({ expression: "process.exit(1)" }))
-        .rejects.toThrow("non-mathematical");
+        .rejects.toThrow("Non-mathematical");
     });
   });
 
