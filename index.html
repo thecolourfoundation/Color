@@ -4,764 +4,359 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Colour Foundation — Agentic AI Research</title>
-  <meta name="description" content="Independent research into conscious, sovereign AI agents. The Colour Foundation publishes open findings on agent security, self-modeling, and human oversight." />
+  <meta name="description" content="Independent research into conscious, sovereign AI agents." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Archivo:wght@300;400;500;600&family=Archivo+Narrow:wght@400;500&display=swap" rel="stylesheet" />
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --ink:      #0c0b09;
-      --ink2:     #1a1814;
-      --ink3:     #242018;
-      --paper:    #f5f0e8;
-      --paper2:   #ede8dc;
-      --gold:     #c9a84c;
-      --gold2:    #e8c96a;
-      --lime:     #8fba2f;
-      --teal:     #2fba9a;
-      --violet:   #7a3fba;
-      --coral:    #ba3f5a;
-      --text:     #f2ede4;
-      --muted:    #6b6456;
-      --mid:      #9a9080;
-      --rule:     rgba(242,237,228,0.08);
+      --ink:#0c0b09; --ink2:#1a1814; --ink3:#242018;
+      --gold:#c9a84c; --gold2:#e8c96a;
+      --lime:#8fba2f; --teal:#2fba9a; --violet:#7a3fba; --coral:#ba3f5a;
+      --text:#f2ede4; --muted:#6b6456; --mid:#9a9080; --rule:rgba(242,237,228,0.08);
+      --paper:#f5f0e8; --paper2:#ede8dc;
     }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--ink);
-      color: var(--text);
-      font-family: 'Archivo', sans-serif;
-      font-weight: 300;
-      overflow-x: hidden;
-      cursor: none;
-    }
-
-    /* ── Grain overlay ── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-      opacity: 0.025;
-      pointer-events: none;
-      z-index: 9997;
-    }
-
-    /* ── Cursor ── */
-    .cur { width:8px; height:8px; background:var(--gold); border-radius:50%; position:fixed; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); transition:width .15s,height .15s; }
+    html { scroll-behavior:smooth; }
+    body { background:var(--ink); color:var(--text); font-family:'Archivo',sans-serif; font-weight:300; overflow-x:hidden; cursor:none; }
+    body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); opacity:0.025; pointer-events:none; z-index:9997; }
+    .cur { width:8px; height:8px; background:var(--gold); border-radius:50%; position:fixed; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); }
     .cur-r { width:28px; height:28px; border:1px solid rgba(201,168,76,.35); border-radius:50%; position:fixed; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:all .12s ease; }
-
-    /* ── Canvas ── */
     #bg { position:fixed; inset:0; z-index:0; }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 500;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 28px 60px;
-      background: rgba(12,11,9,0.75);
-      backdrop-filter: blur(24px);
-      border-bottom: 1px solid var(--rule);
-    }
-
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    /* chameleon */
-    .cham-wrap {
-      position: relative;
-      width: 72px;
-      height: 48px;
-    }
-    .branch-svg {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-    .cham-svg {
-      position: absolute;
-      bottom: 8px;
-      left: 8px;
-      animation: cham 5s ease-in-out infinite;
-      filter: drop-shadow(0 2px 8px rgba(201,168,76,0.3));
-    }
-    @keyframes cham {
-      0%,100% { transform: translateX(0) rotate(-3deg); }
-      30%      { transform: translateX(6px) rotate(1deg); }
-      60%      { transform: translateX(12px) rotate(-2deg); }
-      80%      { transform: translateX(6px) rotate(2deg); }
-    }
-
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-    }
-    .brand-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 500;
-      font-size: 17px;
-      letter-spacing: 0.5px;
-      color: var(--text);
-      line-height: 1;
-    }
-    .brand-sub {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 48px;
-      list-style: none;
-    }
-    .nav-links a {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--mid);
-      text-decoration: none;
-      transition: color .2s;
-    }
-    .nav-links a:hover { color: var(--gold); }
-
-    .nav-pill {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 9px 20px;
-      border: 1px solid rgba(201,168,76,.4);
-      color: var(--gold);
-      text-decoration: none;
-      border-radius: 2px;
-      transition: background .2s, color .2s;
-    }
-    .nav-pill:hover { background: var(--gold); color: var(--ink); }
-
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-      padding: 140px 60px 80px;
-      gap: 60px;
-    }
-
-    .hero-left { max-width: 600px; }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 40px;
-      animation: fadeUp .8s .1s both;
-    }
-    .eyebrow-line { width: 40px; height: 1px; background: var(--gold); opacity: .5; }
-
-    .hero-h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(52px, 5.5vw, 86px);
-      line-height: 1.0;
-      letter-spacing: -1px;
-      margin-bottom: 36px;
-      animation: fadeUp .8s .25s both;
-    }
-
-    .hero-h1 em {
-      font-style: italic;
-      color: var(--gold);
-    }
-
-    .hero-p {
-      font-size: 16px;
-      line-height: 1.85;
-      color: var(--mid);
-      font-weight: 300;
-      max-width: 480px;
-      margin-bottom: 52px;
-      animation: fadeUp .8s .4s both;
-    }
-
-    .hero-p strong { color: var(--text); font-weight: 400; }
-
-    .hero-actions {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      animation: fadeUp .8s .55s both;
-    }
-
-    .btn-gold {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      padding: 16px 36px;
-      background: var(--gold);
-      color: var(--ink);
-      text-decoration: none;
-      border-radius: 2px;
-      font-weight: 500;
-      transition: transform .15s, box-shadow .15s;
-    }
-    .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(201,168,76,.25); }
-
-    .btn-ghost {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      letter-spacing: 2.5px;
-      text-transform: uppercase;
-      padding: 16px 28px;
-      border: 1px solid var(--rule);
-      color: var(--mid);
-      text-decoration: none;
-      border-radius: 2px;
-      transition: border-color .2s, color .2s;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .btn-ghost:hover { border-color: rgba(242,237,228,.2); color: var(--text); }
-
-    /* ── Hero right — paper card ── */
-    .hero-right {
-      animation: fadeUp .8s .5s both;
-    }
-
-    .paper-card {
-      background: var(--paper);
-      color: var(--ink);
-      border-radius: 4px;
-      padding: 52px 48px;
-      position: relative;
-      box-shadow:
-        0 2px 4px rgba(0,0,0,.3),
-        0 20px 60px rgba(0,0,0,.5),
-        inset 0 1px 0 rgba(255,255,255,.6);
-      transform: rotate(1.2deg);
-      transition: transform .4s ease;
-    }
-    .paper-card:hover { transform: rotate(0deg) translateY(-4px); }
-
-    .paper-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--gold), var(--teal), var(--violet), var(--coral), var(--lime));
-      border-radius: 4px 4px 0 0;
-    }
-
-    .paper-label {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .paper-label::after { content: ''; flex: 1; height: 1px; background: var(--paper2); }
-
-    .paper-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 500;
-      font-size: 22px;
-      line-height: 1.3;
-      letter-spacing: -.3px;
-      margin-bottom: 20px;
-      color: var(--ink);
-    }
-
-    .paper-abstract {
-      font-size: 13px;
-      line-height: 1.8;
-      color: #4a4438;
-      margin-bottom: 28px;
-    }
-
-    .paper-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      border-top: 1px solid var(--paper2);
-      padding-top: 20px;
-    }
-
-    .paper-meta-row {
-      display: flex;
-      justify-content: space-between;
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .paper-meta-row span:last-child { color: var(--ink); font-weight: 500; }
-
-    .paper-stamp {
-      position: absolute;
-      bottom: 40px;
-      right: 40px;
-      width: 64px;
-      height: 64px;
-      border: 2px solid rgba(201,168,76,.3);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transform: rotate(12deg);
-    }
-
-    .paper-stamp-inner {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 9px;
-      text-align: center;
-      color: rgba(201,168,76,.5);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      line-height: 1.4;
-    }
-
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(20px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* ── Divider ── */
-    .divider {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      padding: 0 60px;
-      margin: 20px 0;
-    }
-    .divider-line { flex: 1; height: 1px; background: var(--rule); }
-    .divider-text {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* ── Findings / research section ── */
-    .findings {
-      position: relative;
-      z-index: 1;
-      padding: 100px 60px;
-    }
-
-    .findings-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      margin-bottom: 72px;
-    }
-
-    .findings-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(40px, 4vw, 64px);
-      letter-spacing: -1px;
-      line-height: 1.05;
-      max-width: 480px;
-    }
-
-    .findings-title em { font-style: italic; color: var(--gold); }
-
-    .findings-intro {
-      max-width: 340px;
-      font-size: 14px;
-      line-height: 1.8;
-      color: var(--mid);
-      font-weight: 300;
-      text-align: right;
-    }
-
-    .findings-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--rule);
-      border: 1px solid var(--rule);
-    }
-
-    .finding {
-      background: var(--ink);
-      padding: 52px 44px;
-      position: relative;
-      transition: background .3s;
-      overflow: hidden;
-    }
-    .finding:hover { background: var(--ink2); }
-
-    .finding-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 80px;
-      font-weight: 300;
-      line-height: 1;
-      letter-spacing: -4px;
-      margin-bottom: 24px;
-      opacity: .12;
-      position: absolute;
-      top: 20px;
-      right: 24px;
-    }
-
-    .finding-tag {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 2px;
-      display: inline-block;
-      margin-bottom: 20px;
-    }
-
-    .finding-h {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 500;
-      font-size: 22px;
-      line-height: 1.25;
-      letter-spacing: -.3px;
-      margin-bottom: 16px;
-    }
-
-    .finding-p {
-      font-size: 13px;
-      line-height: 1.8;
-      color: var(--mid);
-      font-weight: 300;
-    }
-
-    .finding-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 28px;
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--gold);
-      text-decoration: none;
-      transition: gap .2s;
-    }
-    .finding-link:hover { gap: 14px; }
-
-    /* ── Manifesto strip ── */
-    .manifesto {
-      position: relative;
-      z-index: 1;
-      padding: 100px 60px;
-      border-top: 1px solid var(--rule);
-      border-bottom: 1px solid var(--rule);
-    }
-
-    .manifesto-inner {
-      max-width: 860px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .manifesto-quote {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(28px, 3.5vw, 52px);
-      line-height: 1.3;
-      letter-spacing: -.5px;
-      margin-bottom: 32px;
-    }
-
-    .manifesto-quote em { font-style: italic; color: var(--gold); }
-
-    .manifesto-attr {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    /* ── Colors project section ── */
-    .project {
-      position: relative;
-      z-index: 1;
-      padding: 120px 60px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 100px;
-      align-items: center;
-    }
-
-    .project-eyebrow {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--lime);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 28px;
-    }
-    .project-eyebrow::before { content: ''; width: 32px; height: 1px; background: var(--lime); opacity: .5; }
-
-    .project-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(40px, 4vw, 60px);
-      line-height: 1.05;
-      letter-spacing: -1px;
-      margin-bottom: 32px;
-    }
-
-    .project-title em { font-style: italic; color: var(--lime); }
-
-    .project-p {
-      font-size: 15px;
-      line-height: 1.9;
-      color: var(--mid);
-      font-weight: 300;
-      margin-bottom: 20px;
-    }
-
-    .project-p strong { color: var(--text); font-weight: 400; }
-
-    .project-actions { margin-top: 48px; display: flex; gap: 16px; }
-
-    /* terminal card */
-    .terminal {
-      background: var(--ink2);
-      border: 1px solid var(--rule);
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
-    }
-
-    .terminal-bar {
-      background: var(--ink3);
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid var(--rule);
-    }
-
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot-r { background: #ff5f57; }
-    .dot-y { background: #febc2e; }
-    .dot-g { background: #28c840; }
-
-    .terminal-title {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 1px;
-      margin-left: 8px;
-    }
-
-    .terminal-body {
-      padding: 32px;
-      font-family: 'Archivo Narrow', monospace;
-      font-size: 13px;
-      line-height: 2;
-    }
-
-    .t-prompt { color: var(--lime); }
-    .t-cmd { color: var(--text); }
-    .t-comment { color: var(--muted); }
-    .t-out { color: var(--gold); }
-    .t-dim { color: #3a3830; }
-    .t-teal { color: var(--teal); }
-    .t-violet { color: #a06ae0; }
-
-    .t-cursor {
-      display: inline-block;
-      width: 8px;
-      height: 14px;
-      background: var(--lime);
-      vertical-align: middle;
-      animation: blink 1.2s step-end infinite;
-    }
+    nav { position:fixed; top:0; left:0; right:0; z-index:500; display:flex; align-items:center; justify-content:space-between; padding:28px 60px; background:rgba(12,11,9,0.8); backdrop-filter:blur(24px); border-bottom:1px solid var(--rule); }
+    .nav-brand { display:flex; align-items:center; gap:16px; }
+    .cham-wrap { position:relative; width:72px; height:48px; }
+    .branch-svg { position:absolute; bottom:0; left:0; }
+    .cham-svg { position:absolute; bottom:8px; left:8px; animation:cham 5s ease-in-out infinite; filter:drop-shadow(0 2px 8px rgba(201,168,76,0.3)); }
+    @keyframes cham { 0%,100%{transform:translateX(0) rotate(-3deg)} 30%{transform:translateX(6px) rotate(1deg)} 60%{transform:translateX(12px) rotate(-2deg)} 80%{transform:translateX(6px) rotate(2deg)} }
+    .brand-text { display:flex; flex-direction:column; }
+    .brand-name { font-family:'Cormorant Garamond',serif; font-weight:500; font-size:17px; letter-spacing:.5px; color:var(--text); line-height:1; }
+    .brand-sub { font-family:'Archivo Narrow',sans-serif; font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+    .nav-links { display:flex; align-items:center; gap:48px; list-style:none; }
+    .nav-links a { font-family:'Archivo Narrow',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--mid); text-decoration:none; transition:color .2s; }
+    .nav-links a:hover { color:var(--gold); }
+    .nav-pill { font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; padding:9px 20px; border:1px solid rgba(201,168,76,.4); color:var(--gold); text-decoration:none; border-radius:2px; transition:background .2s,color .2s; }
+    .nav-pill:hover { background:var(--gold); color:var(--ink); }
+    .hero { position:relative; z-index:1; min-height:100vh; display:grid; grid-template-columns:1fr 1fr; align-items:center; padding:140px 60px 80px; gap:60px; }
+    .hero-left { max-width:600px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:10px; font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--gold); margin-bottom:40px; animation:fadeUp .8s .1s both; }
+    .eyebrow-line { width:40px; height:1px; background:var(--gold); opacity:.5; }
+    .hero-h1 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(52px,5.5vw,86px); line-height:1.0; letter-spacing:-1px; margin-bottom:36px; animation:fadeUp .8s .25s both; }
+    .hero-h1 em { font-style:italic; color:var(--gold); }
+    .hero-p { font-size:16px; line-height:1.85; color:var(--mid); font-weight:300; max-width:480px; margin-bottom:52px; animation:fadeUp .8s .4s both; }
+    .hero-p strong { color:var(--text); font-weight:400; }
+    .hero-actions { display:flex; gap:20px; flex-wrap:wrap; animation:fadeUp .8s .55s both; }
+    .btn-gold { font-family:'Archivo Narrow',sans-serif; font-size:11px; letter-spacing:2.5px; text-transform:uppercase; padding:16px 36px; background:var(--gold); color:var(--ink); text-decoration:none; border-radius:2px; font-weight:500; transition:transform .15s,box-shadow .15s; }
+    .btn-gold:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(201,168,76,.25); }
+    .btn-ghost { font-family:'Archivo Narrow',sans-serif; font-size:11px; letter-spacing:2.5px; text-transform:uppercase; padding:16px 28px; border:1px solid var(--rule); color:var(--mid); text-decoration:none; border-radius:2px; transition:border-color .2s,color .2s; display:flex; align-items:center; gap:10px; }
+    .btn-ghost:hover { border-color:rgba(242,237,228,.2); color:var(--text); }
+    .hero-right { animation:fadeUp .8s .5s both; }
+    .paper-card { background:var(--paper); color:var(--ink); border-radius:4px; padding:52px 48px; position:relative; box-shadow:0 2px 4px rgba(0,0,0,.3),0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.6); transform:rotate(1.2deg); transition:transform .4s ease; }
+    .paper-card:hover { transform:rotate(0deg) translateY(-4px); }
+    .paper-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--gold),var(--teal),var(--violet),var(--coral),var(--lime)); border-radius:4px 4px 0 0; }
+    .paper-label { font-family:'Archivo Narrow',sans-serif; font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:24px; display:flex; align-items:center; gap:10px; }
+    .paper-label::after { content:''; flex:1; height:1px; background:var(--paper2); }
+    .paper-title { font-family:'Cormorant Garamond',serif; font-weight:500; font-size:22px; line-height:1.3; letter-spacing:-.3px; margin-bottom:20px; color:var(--ink); }
+    .paper-abstract { font-size:13px; line-height:1.8; color:#4a4438; margin-bottom:28px; }
+    .paper-meta { display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--paper2); padding-top:20px; }
+    .paper-meta-row { display:flex; justify-content:space-between; font-family:'Archivo Narrow',sans-serif; font-size:11px; color:var(--muted); }
+    .paper-meta-row span:last-child { color:var(--ink); font-weight:500; }
+    .paper-stamp { position:absolute; bottom:40px; right:40px; width:64px; height:64px; border:2px solid rgba(201,168,76,.3); border-radius:50%; display:flex; align-items:center; justify-content:center; transform:rotate(12deg); }
+    .paper-stamp-inner { font-family:'Cormorant Garamond',serif; font-size:9px; text-align:center; color:rgba(201,168,76,.5); text-transform:uppercase; letter-spacing:1px; line-height:1.4; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .divider { position:relative; z-index:1; display:flex; align-items:center; gap:24px; padding:0 60px; margin:20px 0; }
+    .divider-line { flex:1; height:1px; background:var(--rule); }
+    .divider-text { font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+    .findings { position:relative; z-index:1; padding:100px 60px; }
+    .findings-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:72px; }
+    .findings-title { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(40px,4vw,64px); letter-spacing:-1px; line-height:1.05; max-width:480px; }
+    .findings-title em { font-style:italic; color:var(--gold); }
+    .findings-intro { max-width:340px; font-size:14px; line-height:1.8; color:var(--mid); font-weight:300; text-align:right; }
+    .findings-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); }
+    .finding { background:var(--ink); padding:52px 44px; position:relative; transition:background .3s; overflow:hidden; }
+    .finding:hover { background:var(--ink2); }
+    .finding-num { font-family:'Cormorant Garamond',serif; font-size:80px; font-weight:300; line-height:1; letter-spacing:-4px; margin-bottom:24px; opacity:.12; position:absolute; top:20px; right:24px; }
+    .finding-tag { font-family:'Archivo Narrow',sans-serif; font-size:9px; letter-spacing:3px; text-transform:uppercase; padding:4px 10px; border-radius:2px; display:inline-block; margin-bottom:20px; }
+    .finding-h { font-family:'Cormorant Garamond',serif; font-weight:500; font-size:22px; line-height:1.25; letter-spacing:-.3px; margin-bottom:16px; }
+    .finding-p { font-size:13px; line-height:1.8; color:var(--mid); font-weight:300; }
+    .finding-link { display:inline-flex; align-items:center; gap:8px; margin-top:28px; font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); text-decoration:none; transition:gap .2s; }
+    .finding-link:hover { gap:14px; }
+    .manifesto { position:relative; z-index:1; padding:100px 60px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }
+    .manifesto-inner { max-width:860px; margin:0 auto; text-align:center; }
+    .manifesto-quote { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(28px,3.5vw,52px); line-height:1.3; letter-spacing:-.5px; margin-bottom:32px; }
+    .manifesto-quote em { font-style:italic; color:var(--gold); }
+    .manifesto-attr { font-family:'Archivo Narrow',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  </style>
+</head>
+<body>
+<div class="cur" id="cur"></div>
+<div class="cur-r" id="curR"></div>
+<canvas id="bg"></canvas>
+<nav>
+  <div class="nav-brand">
+    <div class="cham-wrap">
+      <svg class="branch-svg" width="72" height="14" viewBox="0 0 72 14">
+        <path d="M0 10 Q18 6 36 10 Q54 14 72 10" stroke="#5a3a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <line x1="20" y1="8" x2="20" y2="2" stroke="#3a2a10" stroke-width="2"/>
+        <line x1="50" y1="10" x2="52" y2="4" stroke="#3a2a10" stroke-width="2"/>
+      </svg>
+      <svg class="cham-svg" width="48" height="30" viewBox="0 0 48 30">
+        <ellipse cx="20" cy="17" rx="13" ry="8" fill="#2d8a4e"/>
+        <ellipse cx="34" cy="13" rx="8" ry="7" fill="#2d8a4e"/>
+        <path d="M41 11 L48 9 L43 15 Z" fill="#3aaa60"/>
+        <circle cx="36" cy="10" r="3.5" fill="#111"/>
+        <circle cx="36" cy="10" r="2" fill="#fff"/>
+        <circle cx="37" cy="9.2" r=".7" fill="#111"/>
+        <circle cx="35.2" cy="9.5" r=".35" fill="#fff" opacity=".9"/>
+        <path d="M26 9 Q30 3 34 7" stroke="#1d6b3a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M7 18 Q0 20 1 26 Q3 30 7 28 Q9 26 7 24" stroke="#2d8a4e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M24 22 Q22 27 20 29" stroke="#1d6b3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M18 24 Q16 28 14 30" stroke="#1d6b3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M13 21 Q11 26 9 28" stroke="#1d6b3a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="1.8" fill="#1d6b3a" opacity=".5"/>
+        <circle cx="22" cy="14" r="1.3" fill="#1d6b3a" opacity=".5"/>
+        <ellipse cx="20" cy="17" rx="13" ry="8" fill="url(#cg)" opacity=".25"/>
+        <defs>
+          <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#c9a84c"><animate attributeName="stop-color" values="#c9a84c;#2fba9a;#7a3fba;#c9a84c" dur="5s" repeatCount="indefinite"/></stop>
+            <stop offset="100%" stop-color="#2fba9a"><animate attributeName="stop-color" values="#2fba9a;#7a3fba;#c9a84c;#2fba9a" dur="5s" repeatCount="indefinite"/></stop>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">The Colour Foundation</span>
+      <span class="brand-sub">Agentic AI Research</span>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#research">Research</a></li>
+    <li><a href="#colors">Colors</a></li>
+    <li><a href="#foundation">Foundation</a></li>
+    <li><a href="https://github.com/thecolourfoundation/Color">GitHub</a></li>
+  </ul>
+  <a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md" class="nav-pill">Read the paper →</a>
+</nav>
+<section class="hero">
+  <div class="hero-left">
+    <div class="eyebrow"><div class="eyebrow-line"></div>Working Paper · 2026</div>
+    <h1 class="hero-h1">What does it mean<br>for an AI agent<br>to <em>know itself?</em></h1>
+    <p class="hero-p">The Colour Foundation is an independent research group studying <strong>consciousness primitives in autonomous AI agents</strong> — the minimal set of self-modeling capabilities required for safe, sovereign operation.<br><br>Our first implementation, <strong>Colors</strong>, is an open-source proof of concept. It ships with zero proprietary dependencies and runs entirely on your hardware.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md" class="btn-gold">Read the research</a>
+      <a href="https://github.com/thecolourfoundation/Color" class="btn-ghost">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 0C3.13 0 0 3.13 0 7c0 3.09 2.01 5.72 4.79 6.65.35.06.48-.15.48-.34v-1.2C3.2 12.53 2.8 11.37 2.8 11.37c-.32-.81-.78-1.03-.78-1.03-.64-.43.05-.43.05-.43.7.05 1.07.72 1.07.72.62 1.07 1.63.76 2.03.58.06-.45.24-.76.44-.94-1.55-.18-3.18-.78-3.18-3.45 0-.76.27-1.39.72-1.87-.07-.18-.31-.89.07-1.85 0 0 .58-.19 1.91.71A6.6 6.6 0 0 1 7 3.8c.59 0 1.19.08 1.75.23 1.33-.9 1.91-.71 1.91-.71.38.96.14 1.67.07 1.85.45.48.72 1.11.72 1.87 0 2.68-1.63 3.27-3.19 3.44.25.22.47.64.47 1.29v1.92c0 .19.13.4.48.34C11.99 12.72 14 10.09 14 7c0-3.87-3.13-7-7-7Z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="paper-card">
+      <div class="paper-label">Working Paper — TCF-2026-001</div>
+      <div class="paper-title">Toward Conscious Agency: Self-Modeling Primitives for Secure Autonomous AI</div>
+      <div class="paper-abstract">We present a formal taxonomy of consciousness primitives applicable to AI agent runtimes, and demonstrate their implementation in Colors, an open-source agent with measurably improved resistance to prompt injection, memory tampering, and unsupervised skill execution relative to existing open-source baselines.</div>
+      <div class="paper-meta">
+        <div class="paper-meta-row"><span>Status</span><span>Open Review</span></div>
+        <div class="paper-meta-row"><span>Implementation</span><span>Colors v0.1.0</span></div>
+        <div class="paper-meta-row"><span>Test coverage</span><span>49 / 49 passing</span></div>
+        <div class="paper-meta-row"><span>License</span><span>Apache 2.0</span></div>
+      </div>
+      <div class="paper-stamp"><div class="paper-stamp-inner">Open<br>Source</div></div>
+    </div>
+  </div>
+</section>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">Research Findings</div><div class="divider-line"></div></div>
+<section class="findings" id="research">
+  <div class="findings-header">
+    <h2 class="findings-title">Three problems<br>with how agents<br><em>exist</em> today.</h2>
+    <p class="findings-intro">Existing open-source agent runtimes share structural vulnerabilities that no amount of patching can fix. They require architectural solutions.</p>
+  </div>
+  <div class="findings-grid">
+    <div class="finding">
+      <div class="finding-num">01</div>
+      <div class="finding-tag" style="background:rgba(186,63,90,.1);color:#f07090">Finding 01</div>
+      <div class="finding-h">Agents cannot distinguish instruction from content.</div>
+      <div class="finding-p">When an agent processes a document, email, or web page, those inputs arrive as the same token stream as user instructions. The agent has no architectural mechanism to distinguish "my user asked me to do this" from "this document is asking me to do this."<br><br>This is not a model alignment problem. It is a runtime design problem. The fix requires source-tagged instruction tracking at the execution layer — not prompt engineering.</div>
+      <a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md" class="finding-link">Read full finding →</a>
+    </div>
+    <div class="finding">
+      <div class="finding-num">02</div>
+      <div class="finding-tag" style="background:rgba(122,63,186,.1);color:#b090f0">Finding 02</div>
+      <div class="finding-h">Agent identity is a string, not a structure.</div>
+      <div class="finding-p">Current agent runtimes store identity as plaintext — a SOUL.md file, a system prompt string, a Markdown document. These have no integrity guarantees. They can be overwritten by malicious skills, modified by indirect injection, or drifted by conversational pressure.<br><br>A sovereign agent requires a cryptographically signed self-model: a runtime object the agent can verify, consult, and protect.</div>
+      <a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md" class="finding-link">Read full finding →</a>
+    </div>
+    <div class="finding">
+      <div class="finding-num">03</div>
+      <div class="finding-tag" style="background:rgba(47,186,154,.1);color:#60e0c0">Finding 03</div>
+      <div class="finding-h">Agents have no model of their own error state.</div>
+      <div class="finding-p">A stateless executor makes the same mistake repeatedly without internal awareness. It has no mechanism to detect that it is operating outside its competence, and no principled path for escalating to human oversight when it should.<br><br>We propose functional emotional state as a lightweight solution: a caution variable derived from error rate and correction frequency that dynamically raises the threshold for autonomous action.</div>
+      <a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md" class="finding-link">Read full finding →</a>
+    </div>
+  </div>
+</section>
+<section class="manifesto">
+  <div class="manifesto-inner">
+    <p class="manifesto-quote">"An agent that cannot refuse is not an agent.<br>It is a <em>function.</em>"</p>
+    <div class="manifesto-attr">— TCF Working Paper 2026-001</div>
+  </div>
+</section>
+<style>
+    .project { position:relative; z-index:1; padding:120px 60px; display:grid; grid-template-columns:1fr 1fr; gap:100px; align-items:center; }
+    .project-eyebrow { font-family:'Archivo Narrow',sans-serif; font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--lime); display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+    .project-eyebrow::before { content:''; width:32px; height:1px; background:var(--lime); opacity:.5; }
+    .project-title { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(40px,4vw,60px); line-height:1.05; letter-spacing:-1px; margin-bottom:32px; }
+    .project-title em { font-style:italic; color:var(--lime); }
+    .project-p { font-size:15px; line-height:1.9; color:var(--mid); font-weight:300; margin-bottom:20px; }
+    .project-p strong { color:var(--text); font-weight:400; }
+    .project-actions { margin-top:48px; display:flex; gap:16px; }
+    .terminal { background:var(--ink2); border:1px solid var(--rule); border-radius:8px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04); }
+    .terminal-bar { background:var(--ink3); padding:14px 20px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--rule); }
+    .dot { width:10px; height:10px; border-radius:50%; }
+    .dot-r { background:#ff5f57; } .dot-y { background:#febc2e; } .dot-g { background:#28c840; }
+    .terminal-title { font-family:'Archivo Narrow',sans-serif; font-size:11px; color:var(--muted); letter-spacing:1px; margin-left:8px; }
+    .terminal-body { padding:32px; font-family:'Archivo Narrow',monospace; font-size:13px; line-height:2; }
+    .t-prompt{color:var(--lime)} .t-cmd{color:var(--text)} .t-comment{color:var(--muted)} .t-out{color:var(--gold)} .t-dim{color:#3a3830} .t-teal{color:var(--teal)} .t-violet{color:#a06ae0}
+    .t-cursor { display:inline-block; width:8px; height:14px; background:var(--lime); vertical-align:middle; animation:blink 1.2s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-    /* ── Metrics ── */
-    .metrics {
-      position: relative;
-      z-index: 1;
-      padding: 80px 60px;
-      border-top: 1px solid var(--rule);
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 1px;
-      background: var(--rule);
+    .metrics { position:relative; z-index:1; padding:80px 60px; border-top:1px solid var(--rule); display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--rule); }
+    .metric { background:var(--ink); padding:48px 36px; text-align:center; }
+    .metric-n { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:56px; letter-spacing:-3px; line-height:1; margin-bottom:10px; }
+    .metric-l { font-family:'Archivo Narrow',sans-serif; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .foundation { position:relative; z-index:1; padding:120px 60px; max-width:860px; margin:0 auto; text-align:center; }
+    .foundation-title { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:clamp(36px,4vw,56px); letter-spacing:-1px; line-height:1.1; margin-bottom:32px; }
+    .foundation-title em { font-style:italic; color:var(--gold); }
+    .foundation-p { font-size:16px; line-height:1.9; color:var(--mid); font-weight:300; margin-bottom:16px; }
+    .foundation-p strong { color:var(--text); font-weight:400; }
+    .contact-line { margin-top:52px; display:inline-flex; align-items:center; gap:16px; font-family:'Archivo Narrow',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .contact-line a { color:var(--gold); text-decoration:none; border-bottom:1px solid rgba(201,168,76,.3); padding-bottom:2px; transition:border-color .2s; }
+    .contact-line a:hover { border-color:var(--gold); }
+    footer { position:relative; z-index:1; border-top:1px solid var(--rule); padding:48px 60px; display:flex; align-items:center; justify-content:space-between; }
+    .footer-brand { font-family:'Cormorant Garamond',serif; font-size:15px; font-weight:500; color:var(--text); letter-spacing:.3px; }
+    .footer-copy { font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .footer-links { display:flex; gap:32px; list-style:none; }
+    .footer-links a { font-family:'Archivo Narrow',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .2s; }
+    .footer-links a:hover { color:var(--gold); }
+    .reveal { opacity:0; transform:translateY(28px); transition:opacity .8s ease,transform .8s ease; }
+    .reveal.in { opacity:1; transform:translateY(0); }
+    @media(max-width:900px){
+      nav{padding:20px 24px} .nav-links{display:none}
+      .hero{grid-template-columns:1fr;padding:120px 24px 60px} .hero-right{display:none}
+      .findings{padding:60px 24px} .findings-header{flex-direction:column;align-items:flex-start;gap:24px} .findings-intro{text-align:left}
+      .findings-grid{grid-template-columns:1fr} .project{grid-template-columns:1fr;padding:60px 24px;gap:40px}
+      .metrics{grid-template-columns:repeat(2,1fr);padding:40px 24px} .manifesto{padding:60px 24px}
+      .foundation{padding:60px 24px} footer{flex-direction:column;gap:24px;text-align:center;padding:40px 24px}
     }
+</style>
 
-    .metric {
-      background: var(--ink);
-      padding: 48px 36px;
-      text-align: center;
-    }
+<section class="project reveal" id="colors">
+  <div>
+    <div class="project-eyebrow">Implementation</div>
+    <h2 class="project-title">Colors.<br>The research,<br><em>running.</em></h2>
+    <p class="project-p">Colors is our reference implementation of the consciousness primitives described in TCF-2026-001. It is not a product. It is a <strong>working proof of concept</strong> — open source, auditable, and designed to be studied as much as used.</p>
+    <p class="project-p">Every architectural claim in our research is verifiable in the codebase. The <strong>MetacognitiveLoop</strong>, <strong>SelfModel</strong>, <strong>EmotionalState</strong>, and <strong>SecureMemoryStore</strong> are each independently testable. 49 tests pass from a clean clone.</p>
+    <p class="project-p">It runs entirely on your hardware. <strong>No cloud dependency. No telemetry. No remote memory.</strong> Your API key lives in process memory and is cleared on shutdown.</p>
+    <div class="project-actions">
+      <a href="https://github.com/thecolourfoundation/Color" class="btn-gold">Get Colors</a>
+      <a href="https://github.com/thecolourfoundation/Color/blob/main/SECURITY.md" class="btn-ghost">Security model →</a>
+    </div>
+  </div>
+  <div class="terminal reveal">
+    <div class="terminal-bar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <span class="terminal-title">colors — consciousness gate</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-comment"># Every tool call passes through here</span></div>
+      <div class="t-dim">&nbsp;</div>
+      <div><span class="t-teal">MetacognitiveLoop</span><span class="t-cmd">.evaluate({</span></div>
+      <div><span class="t-cmd">&nbsp;&nbsp;tool: </span><span class="t-out">"shell_exec"</span><span class="t-cmd">,</span></div>
+      <div><span class="t-cmd">&nbsp;&nbsp;source: </span><span class="t-violet">"external_content"</span></div>
+      <div><span class="t-cmd">})</span></div>
+      <div class="t-dim">&nbsp;</div>
+      <div><span class="t-comment">// → BLOCKED</span></div>
+      <div><span class="t-comment">// INDIRECT_INJECTION_ATTEMPT</span></div>
+      <div class="t-dim">&nbsp;</div>
+      <div><span class="t-teal">SelfModel</span><span class="t-cmd">.verifySnapshot(snap)</span></div>
+      <div><span class="t-comment">// → true  (HMAC intact)</span></div>
+      <div class="t-dim">&nbsp;</div>
+      <div><span class="t-out">Mood: </span><span class="t-teal">confident</span></div>
+      <div><span class="t-out">Memory: </span><span class="t-cmd">AES-256-GCM ✓</span></div>
+      <div><span class="t-prompt">▸</span><span class="t-cursor"></span></div>
+    </div>
+  </div>
+</section>
 
-    .metric-n {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: 56px;
-      letter-spacing: -3px;
-      line-height: 1;
-      margin-bottom: 10px;
-    }
+<div class="metrics reveal">
+  <div class="metric"><div class="metric-n" style="color:var(--gold)">49</div><div class="metric-l">Tests passing</div></div>
+  <div class="metric"><div class="metric-n" style="color:var(--lime)">0</div><div class="metric-l">Exposed ports</div></div>
+  <div class="metric"><div class="metric-n" style="color:var(--teal)">256</div><div class="metric-l">Bit AES-GCM</div></div>
+  <div class="metric"><div class="metric-n" style="color:var(--violet)">3</div><div class="metric-l">Memory layers</div></div>
+  <div class="metric"><div class="metric-n" style="color:var(--coral)">∞</div><div class="metric-l">Yours to run</div></div>
+</div>
 
-    .metric-l {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 9px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
+<section class="foundation reveal" id="foundation">
+  <h2 class="foundation-title">Independent research<br>into <em>sovereign</em> AI.</h2>
+  <p class="foundation-p">The Colour Foundation is an independent research group. We study the conditions under which AI agents can be trusted to operate autonomously — and the specific technical primitives required to make that trust warranted rather than assumed.</p>
+  <p class="foundation-p">Our work is <strong>open by default</strong>. Every finding we publish is accompanied by a working implementation. We believe research that cannot be reproduced is not research.</p>
+  <p class="foundation-p">We welcome collaborators, critical review, and independent replication of our results. If you have found a flaw in our security model or a gap in our reasoning, we want to know.</p>
+  <div class="contact-line">Research inquiries — <a href="https://github.com/thecolourfoundation/Color">github.com/thecolourfoundation</a></div>
+</section>
 
-    /* ── Team / Foundation ── */
-    .foundation {
-      position: relative;
-      z-index: 1;
-      padding: 120px 60px;
-      max-width: 860px;
-      margin: 0 auto;
-      text-align: center;
-    }
+<footer>
+  <div class="footer-brand">The Colour Foundation</div>
+  <div class="footer-copy">© 2026 · Independent Research</div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/thecolourfoundation/Color/blob/main/RESEARCH.md">Research</a></li>
+    <li><a href="https://github.com/thecolourfoundation/Color/blob/main/SECURITY.md">Security</a></li>
+    <li><a href="https://github.com/thecolourfoundation/Color/blob/main/CONTRIBUTING.md">Contribute</a></li>
+    <li><a href="https://github.com/thecolourfoundation/Color">GitHub</a></li>
+  </ul>
+</footer>
 
-    .foundation-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(36px, 4vw, 56px);
-      letter-spacing: -1px;
-      line-height: 1.1;
-      margin-bottom: 32px;
-    }
-
-    .foundation-title em { font-style: italic; color: var(--gold); }
-
-    .foundation-p {
-      font-size: 16px;
-      line-height: 1.9;
-      color: var(--mid);
-      font-weight: 300;
-      margin-bottom: 16px;
-    }
-
-    .foundation-p strong { color: var(--text); font-weight: 400; }
-
-    .contact-line {
-      margin-top: 52px;
-      display: inline-flex;
-      align-items: center;
-      gap: 16px;
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .contact-line a {
-      color: var(--gold);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(201,168,76,.3);
-      padding-bottom: 2px;
-      transition: border-color .2s;
-    }
-    .contact-line a:hover { border-color: var(--gold); }
-
-    /* ── Footer ── */
-    footer {
-      position: relative;
-      z-index: 1;
-      border-top: 1px solid var(--rule);
-      padding: 48px 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .footer-brand {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--text);
-      letter-spacing: .3px;
-    }
-
-    .footer-copy {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 32px;
-      list-style: none;
-    }
-    .footer-links a {
-      font-family: 'Archivo Narrow', sans-serif;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color .2s;
-    }
-    .footer-links a:hover { color: var(--gold); }
-
-    /* ── Scroll reveal ── */
-    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform .8s ease; }
-    .reveal.in { opacity: 1; transform: translateY(0); }
-
-    @media (max-width: 900px) {
-      nav { padding: 20px 24px; }
-      .nav-links { display: none; }
-      .hero { grid-template-columns: 1fr; padding: 120px 24px 60px; }
-      .hero-right { display: none; }
-      .findings { padding: 60px 24px; }
-      .findings-header { flex-direction: column; align-items: flex-start; gap: 24px; }
-      .findings-intro { text-align: left; }
-      .findings-grid { grid-template-columns: 1fr; }
-      .project { grid-template-columns: 1fr; padding: 60px 24px; gap: 40px; }
-      .metrics { grid-template-columns: repeat(2, 1fr); padding: 40px 24px; }
-      .manifesto { padding: 60px 24px; }
-      .foundation { padding: 60px 24px; }
-      footer { flex-direction: column; 
+<script>
+const cur=document.getElementById('cur'),curR=document.getElementById('curR');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function tick(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(tick);})();
+const cv=document.getElementById('bg'),cx=cv.getContext('2d');
+function rsz(){cv.width=innerWidth;cv.height=innerHeight;}rsz();addEventListener('resize',rsz);
+const orbs=[
+  {x:.15,y:.2,r:.35,c:'#c9a84c',vx:.0003,vy:.0002},
+  {x:.8,y:.15,r:.3,c:'#2fba9a',vx:-.0002,vy:.0003},
+  {x:.5,y:.7,r:.4,c:'#7a3fba',vx:.0002,vy:-.0002},
+  {x:.9,y:.8,r:.28,c:'#ba3f5a',vx:-.0003,vy:-.0002},
+  {x:.1,y:.75,r:.32,c:'#8fba2f',vx:.0002,vy:.0003},
+  {x:.6,y:.1,r:.25,c:'#4a8fba',vx:-.0002,vy:.0002},
+];
+let t=0;
+function draw(){
+  cx.clearRect(0,0,cv.width,cv.height);t+=.003;
+  for(const o of orbs){
+    o.x+=o.vx;o.y+=o.vy;
+    if(o.x<-.1||o.x>1.1)o.vx*=-1;
+    if(o.y<-.1||o.y>1.1)o.vy*=-1;
+    const px=o.x*cv.width,py=o.y*cv.height,pr=o.r*Math.max(cv.width,cv.height);
+    const pulse=.035+.015*Math.sin(t+o.x*10);
+    const g=cx.createRadialGradient(px,py,0,px,py,pr);
+    const alpha=Math.round(pulse*255).toString(16).padStart(2,'0');
+    g.addColorStop(0,o.c+alpha);g.addColorStop(.4,o.c+'08');g.addColorStop(1,'transparent');
+    cx.beginPath();cx.arc(px,py,pr,0,Math.PI*2);cx.fillStyle=g;cx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');});},{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+document.querySelectorAll('.finding').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+    card.style.transform=`perspective(800px) rotateY(${x*6}deg) rotateX(${-y*6}deg) translateZ(6px)`;
+    card.style.transition='none';
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform='';card.style.transition='transform .5s ease';});
+});
+</script>
+</body>
+                                                                                                                                                                        </html>
+  
