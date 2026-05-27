@@ -12,17 +12,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: "npm"
 
       - name: Install dependencies
         run: npm install
 
-      - name: Install optional build deps
+      - name: Install optional deps
         run: npm install ws @types/ws
 
       - name: Patch tsconfig
@@ -37,7 +38,6 @@ jobs:
             'src/channels/DiscordAdapter.ts'
           ];
           fs.writeFileSync('tsconfig.json', JSON.stringify(t,null,2));
-          console.log('tsconfig patched');
           "
 
       - name: Build
@@ -56,7 +56,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: "npm"
 
       - run: npm install
       - run: npm install ws @types/ws
