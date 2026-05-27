@@ -147,11 +147,9 @@ async function runChannel(channel: string, config: ReturnType<typeof resolveConf
     }
 
     case "whatsapp": {
-      const allowed = process.env.WHATSAPP_ALLOWED_NUMBERS || "*";
-      const { WhatsAppAdapter } = await import("./channels/WhatsAppAdapter");
-      const adapter = new WhatsAppAdapter({ allowedNumbers: allowed, passphrase: config.passphrase });
-      process.on("SIGINT", () => { adapter.stop(); process.exit(0); });
-      await adapter.start();
+      console.error("WhatsApp adapter requires: npm install @whiskeysockets/baileys @hapi/boom");
+      console.error("Then add WhatsAppAdapter back to src/channels/");
+      process.exit(1);
       break;
     }
 
