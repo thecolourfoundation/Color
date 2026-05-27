@@ -1,120 +1,137 @@
-import { SecureMemoryStore } from "../src/memory/SecureMemoryStore";
-import { mkdirSync, rmSync, existsSync } from "fs";
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, scryptSync } from "crypto";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
-import { tmpdir } from "os";
 
-describe("SecureMemoryStore", () => {
-  let testDir: string;
-  let store: SecureMemoryStore;
+const ALGORITHM = "aes-256-gcm";
+const KEY_LEN = 32;
+const IV_LEN = 16;
+const TAG_LEN = 16;
+const SALT_LEN = 32;
 
-  beforeEach(() => {
-    testDir = join(tmpdir(), `colors-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-    store = new SecureMemoryStore(testDir, "test-passphrase-123");
-  });
+export interface MemoryEntry {
+  id: string;
+  type: "episodic" | "semantic" | "procedural";
+  content: string;
+  tags: string[];
+  importance: number;
+  createdAt: number;
+  accessedAt: number;
+}
 
-  afterEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
-  });
+export interface MemoryStore {
+  episodic: MemoryEntry[];
+  semantic: MemoryEntry[];
+  procedural: MemoryEntry[];
+  selfModelSnapshot?: Record<string, unknown>;
+  version: number;
+}
 
-  describe("basic operations", () => {
-    it("stores and retrieves an episodic entry", () => {
-      store.add({
-        type: "episodic",
-        content: "User asked about the weather",
-        tags: ["weather", "casual"],
-        importance: 0.5,
-      });
+export class SecureMemoryStore {
+  private storePath: string;
+  private encryptionKey: Buffer;
+  private hmacKey: Buffer;
+  private store: MemoryStore;
 
-      const results = store.query("episodic");
-      expect(results).toHaveLength(1);
-      expect(results[0].content).toBe("User asked about the weather");
-    });
+  constructor(storageDir: string, userPassphrase: string) {
+    mkdirSync(storageDir, { recursive: true });
+    this.storePath = join(storageDir, "colors.mem");
+    const salt = this.getOrCreateSalt(join(storageDir, ".salt"));
+    this.encryptionKey = scryptSync(userPassphrase, salt, KEY_LEN) as Buffer;
+    this.hmacKey = scryptSync(userPassphrase + "_hmac", salt, KEY_LEN) as Buffer;
+    this.store = this.load();
+  }
 
-    it("stores and retrieves semantic entries by tag", () => {
-      store.add({ type: "semantic", content: "User prefers dark mode", tags: ["preferences", "ui"], importance: 0.7 });
-      store.add({ type: "semantic", content: "User is a software engineer", tags: ["profession"], importance: 0.8 });
-      store.add({ type: "semantic", content: "User likes coffee", tags: ["preferences", "food"], importance: 0.4 });
+  private encrypt(plaintext: string): Buffer {
+    const iv = randomBytes(IV_LEN);
+    const cipher = createCipheriv(ALGORITHM, this.encryptionKey, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return Buffer.concat([iv, tag, encrypted]);
+  }
 
-      const prefResults = store.query("semantic", ["preferences"]);
-      expect(prefResults).toHaveLength(2);
-      expect(prefResults.map(r => r.content)).toContain("User prefers dark mode");
-    });
+  private decrypt(ciphertext: Buffer): string {
+    const iv = ciphertext.subarray(0, IV_LEN);
+    const tag = ciphertext.subarray(IV_LEN, IV_LEN + TAG_LEN);
+    const data = ciphertext.subarray(IV_LEN + TAG_LEN);
+    const decipher = createDecipheriv(ALGORITHM, this.encryptionKey, iv);
+    decipher.setAuthTag(tag);
+    return decipher.update(data) + decipher.final("utf8");
+  }
 
-    it("deletes entries by id", () => {
-      const entry = store.add({ type: "episodic", content: "temp memory", tags: [], importance: 0.1 });
-      expect(store.query("episodic")).toHaveLength(1);
+  private sign(data: Buffer): string {
+    return createHmac("sha256", this.hmacKey).update(data).digest("hex");
+  }
 
-      store.delete(entry.id);
-      expect(store.query("episodic")).toHaveLength(0);
-    });
+  private load(): MemoryStore {
+    if (!existsSync(this.storePath)) {
+      return { episodic: [], semantic: [], procedural: [], version: 1 };
+    }
+    try {
+      const raw = readFileSync(this.storePath);
+      const hmacHex = raw.subarray(0, 64).toString("ascii");
+      const ciphertext = raw.subarray(64);
+      const expectedHmac = this.sign(ciphertext);
+      if (hmacHex !== expectedHmac) {
+        throw new Error("MEMORY_INTEGRITY_FAILURE: Colors memory store has been tampered with.");
+      }
+      return JSON.parse(this.decrypt(ciphertext)) as MemoryStore;
+    } catch (err: any) {
+      if (err.message.startsWith("MEMORY_INTEGRITY_FAILURE")) throw err;
+      console.error("[SecureMemoryStore] Failed to load, starting fresh:", err.message);
+      return { episodic: [], semantic: [], procedural: [], version: 1 };
+    }
+  }
 
-    it("returns stats correctly", () => {
-      store.add({ type: "episodic", content: "ep1", tags: [], importance: 0.5 });
-      store.add({ type: "episodic", content: "ep2", tags: [], importance: 0.5 });
-      store.add({ type: "semantic", content: "sem1", tags: [], importance: 0.5 });
+  persist(): void {
+    const ciphertext = this.encrypt(JSON.stringify(this.store));
+    const hmac = Buffer.from(this.sign(ciphertext), "ascii");
+    writeFileSync(this.storePath, Buffer.concat([hmac, ciphertext]));
+  }
 
-      const stats = store.getStats();
-      expect(stats.episodic).toBe(2);
-      expect(stats.semantic).toBe(1);
-      expect(stats.procedural).toBe(0);
-    });
-  });
+  add(entry: Omit<MemoryEntry, "id" | "createdAt" | "accessedAt">): MemoryEntry {
+    const full: MemoryEntry = { ...entry, id: randomBytes(8).toString("hex"), createdAt: Date.now(), accessedAt: Date.now() };
+    this.store[entry.type].push(full);
+    this.prune(entry.type);
+    return full;
+  }
 
-  describe("encryption and persistence", () => {
-    it("persists to disk and reloads correctly", () => {
-      store.add({ type: "semantic", content: "persistent fact", tags: ["test"], importance: 0.9 });
-      store.persist();
+  query(type: MemoryEntry["type"], tags: string[] = [], limit = 10): MemoryEntry[] {
+    let entries = this.store[type];
+    if (tags.length > 0) entries = entries.filter(e => tags.some(t => e.tags.includes(t)));
+    const now = Date.now();
+    entries.forEach(e => (e.accessedAt = now));
+    return entries.sort((a, b) => b.importance - a.importance || b.createdAt - a.createdAt).slice(0, limit);
+  }
 
-      // Load a new instance from the same directory
-      const store2 = new SecureMemoryStore(testDir, "test-passphrase-123");
-      const results = store2.query("semantic", ["test"]);
-      expect(results).toHaveLength(1);
-      expect(results[0].content).toBe("persistent fact");
-    });
+  delete(id: string): void {
+    for (const type of ["episodic", "semantic", "procedural"] as const) {
+      this.store[type] = this.store[type].filter(e => e.id !== id);
+    }
+  }
 
-    it("rejects load with wrong passphrase", () => {
-      store.add({ type: "semantic", content: "secret", tags: [], importance: 0.9 });
-      store.persist();
+  private prune(type: MemoryEntry["type"], maxEntries = 200): void {
+    if (this.store[type].length <= maxEntries) return;
+    this.store[type] = this.store[type]
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, maxEntries);
+  }
 
-      // Wrong passphrase — should fail to decrypt (GCM auth tag mismatch)
-      expect(() => {
-        new SecureMemoryStore(testDir, "wrong-passphrase");
-      }).not.toThrow(); // Starts fresh rather than crashing, but data is inaccessible
+  saveSelfModelSnapshot(snapshot: Record<string, unknown>): void {
+    this.store.selfModelSnapshot = snapshot;
+  }
 
-      const store2 = new SecureMemoryStore(testDir, "wrong-passphrase");
-      // Data should not be readable
-      expect(store2.query("semantic")).toHaveLength(0);
-    });
+  loadSelfModelSnapshot(): Record<string, unknown> | undefined {
+    return this.store.selfModelSnapshot;
+  }
 
-    it("detects and rejects tampered memory file", () => {
-      store.add({ type: "semantic", content: "important", tags: [], importance: 0.9 });
-      store.persist();
+  private getOrCreateSalt(saltPath: string): Buffer {
+    if (existsSync(saltPath)) return readFileSync(saltPath);
+    const salt = randomBytes(SALT_LEN);
+    writeFileSync(saltPath, salt, { mode: 0o600 });
+    return salt;
+  }
 
-      // Tamper with the file: flip some bytes in the ciphertext region
-      const fs = require("fs");
-      const memFile = join(testDir, "colors.mem");
-      const raw = fs.readFileSync(memFile);
-      // Tamper with byte 100 (well into ciphertext, past the 64-byte HMAC)
-      raw[100] = raw[100] ^ 0xFF;
-      fs.writeFileSync(memFile, raw);
-
-      expect(() => {
-        new SecureMemoryStore(testDir, "test-passphrase-123");
-      }).toThrow(/MEMORY_INTEGRITY_FAILURE/);
-    });
-  });
-
-  describe("self-model snapshot", () => {
-    it("saves and loads self-model snapshot", () => {
-      const snapshot = { identity: "I am Colors", version: 1, values: { harmAvoidance: 0.9 } };
-      store.saveSelfModelSnapshot(snapshot);
-      store.persist();
-
-      const store2 = new SecureMemoryStore(testDir, "test-passphrase-123");
-      const loaded = store2.loadSelfModelSnapshot();
-      expect(loaded).toEqual(snapshot);
-    });
-  });
-});
-        
+  getStats(): { episodic: number; semantic: number; procedural: number } {
+    return { episodic: this.store.episodic.length, semantic: this.store.semantic.length, procedural: this.store.procedural.length };
+  }
+}
