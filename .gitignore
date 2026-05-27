@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+*.js.map
+*.d.ts.map
+
+# Never commit credentials or memory
+.env
+.env.*
+~/.colors/
+*.mem
+.salt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
