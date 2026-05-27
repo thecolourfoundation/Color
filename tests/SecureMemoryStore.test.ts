@@ -77,14 +77,10 @@ describe("SecureMemoryStore", () => {
       store.add({ type: "semantic", content: "secret", tags: [], importance: 0.9 });
       store.persist();
 
-      // Wrong passphrase — should fail to decrypt (GCM auth tag mismatch)
+      // Wrong passphrase — HMAC check fails, throws MEMORY_INTEGRITY_FAILURE
       expect(() => {
         new SecureMemoryStore(testDir, "wrong-passphrase");
-      }).not.toThrow(); // Starts fresh rather than crashing, but data is inaccessible
-
-      const store2 = new SecureMemoryStore(testDir, "wrong-passphrase");
-      // Data should not be readable
-      expect(store2.query("semantic")).toHaveLength(0);
+      }).toThrow("MEMORY_INTEGRITY_FAILURE");
     });
 
     it("detects and rejects tampered memory file", () => {
