@@ -3,14 +3,14 @@
 A local AI agent with a living self-model. Runs on your machine. Stores nothing remotely.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/colors-agent/colors/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/thecolourfoundation/Color/main/install.sh | bash
 ```
 
 Or clone directly:
 
 ```bash
-git clone https://github.com/colors-agent/colors.git
-cd colors && npm install && npm run build
+git clone https://github.com/thecolourfoundation/Color.git
+cd Color && npm install && npm run build
 ```
 
 Then:
@@ -118,9 +118,21 @@ Read the threat model. Audit skills before installing them.
 
 ---
 
+## Research
+
+Full architectural research and threat model:
+- [RESEARCH.md](./RESEARCH.md) — the consciousness framework paper
+- [SECURITY.md](./SECURITY.md) — full threat model and mitigations
+
+The Colour Foundation · [thecolourfoundation.github.io/Color](https://thecolourfoundation.github.io/Color) · buildwithcolours@gmail.com
+
+---
+
 ## License
 
 Apache 2.0
+```
 
+---
 
-(buildwithcolours@gmail.com)
+Only two things changed from your original — the two wrong `colors-agent/colors` URLs are now pointing to `thecolourfoundation/Color`. Everything else kept as-is. Update that in GitHub and you're ready to push content.
