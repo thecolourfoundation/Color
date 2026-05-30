@@ -1,114 +1,91 @@
 #!/usr/bin/env bash
-# Colors — installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/colors-agent/colors/main/install.sh | bash
+# Colors — Install Script
+# curl -fsSL https://raw.githubusercontent.com/thecolourfoundation/Color/main/install.sh | bash
 
 set -e
 
+REPO="https://github.com/thecolourfoundation/Color.git"
 INSTALL_DIR="$HOME/.colors-agent"
 BIN_DIR="$HOME/.local/bin"
 
-echo ""
-echo "  Colors — local AI agent"
-echo ""
+# ── Colors ──────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+RESET='\033[0m'
 
-# ── Dependencies ──────────────────────────────────────────────────────────────
+print()  { echo -e "$1"; }
+ok()     { echo -e "${GREEN}  ✓  $1${RESET}"; }
+info()   { echo -e "${CYAN}  →  $1${RESET}"; }
+err()    { echo -e "${RED}  ✗  $1${RESET}"; exit 1; }
 
-# Node.js >= 18
-if ! command -v node &>/dev/null; then
-  echo "  Error: Node.js is required (>= 18)"
-  echo "  Install it: https://nodejs.org/en/download"
-  echo ""
-  echo "  On Ubuntu/Debian:"
-  echo "    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
-  echo "    sudo apt-get install -y nodejs"
-  exit 1
+print ""
+print "${BOLD}  Colors — AI Agent Installer${RESET}"
+print "${DIM}  Local. Encrypted. Conscious.${RESET}"
+print ""
+
+# ── Check Node ───────────────────────────────────────────────────────────────
+info "Checking Node.js (>=18 required)..."
+if ! command -v node &> /dev/null; then
+  err "Node.js not found. Install from https://nodejs.org and try again."
 fi
 
-NODE_MAJOR=$(node -e "process.stdout.write(String(process.versions.node.split('.')[0]))")
-if [ "$NODE_MAJOR" -lt 18 ]; then
-  echo "  Error: Node.js >= 18 required. You have $(node --version)"
-  exit 1
+NODE_VER=$(node -e "process.stdout.write(process.version.slice(1).split('.')[0])")
+if [ "$NODE_VER" -lt 18 ]; then
+  err "Node.js 18+ required. Current: $(node --version)"
 fi
+ok "Node.js $(node --version)"
 
-# git
-if ! command -v git &>/dev/null; then
-  echo "  Error: git is required"
-  echo "  Install: sudo apt install git  (or brew install git on macOS)"
-  exit 1
+# ── Check Git ─────────────────────────────────────────────────────────────────
+if ! command -v git &> /dev/null; then
+  err "git not found. Install git and try again."
 fi
+ok "git $(git --version | cut -d' ' -f3)"
 
-# ── Install or update ─────────────────────────────────────────────────────────
-
-if [ -d "$INSTALL_DIR/.git" ]; then
-  echo "  Updating Colors..."
-  cd "$INSTALL_DIR"
-  git pull --quiet origin main
+# ── Clone ────────────────────────────────────────────────────────────────────
+info "Cloning Colors to $INSTALL_DIR..."
+if [ -d "$INSTALL_DIR" ]; then
+  print "${DIM}  Directory exists — pulling latest...${RESET}"
+  git -C "$INSTALL_DIR" pull --quiet
 else
-  echo "  Downloading Colors..."
-  git clone --quiet --depth=1 https://github.com/colors-agent/colors.git "$INSTALL_DIR"
-  cd "$INSTALL_DIR"
+  git clone --quiet "$REPO" "$INSTALL_DIR"
 fi
+ok "Repository ready"
 
-echo "  Installing dependencies..."
-npm install --silent --omit=dev
+# ── Install deps ──────────────────────────────────────────────────────────────
+info "Installing dependencies..."
+cd "$INSTALL_DIR"
+npm install --silent
+ok "Dependencies installed"
 
-echo "  Building..."
+# ── Build ─────────────────────────────────────────────────────────────────────
+info "Building..."
 npm run build --silent
+ok "Build complete"
 
-# ── Create launcher ───────────────────────────────────────────────────────────
-
+# ── Link CLI ──────────────────────────────────────────────────────────────────
 mkdir -p "$BIN_DIR"
+ln -sf "$INSTALL_DIR/dist/cli.js" "$BIN_DIR/colors"
+chmod +x "$INSTALL_DIR/dist/cli.js"
 
-cat > "$BIN_DIR/colors" << LAUNCHER
-#!/usr/bin/env bash
-exec node "$INSTALL_DIR/dist/cli.js" "\$@"
-LAUNCHER
-
-chmod +x "$BIN_DIR/colors"
-
-# ── Shell PATH check ──────────────────────────────────────────────────────────
-
-PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
-SHELL_RC=""
-
-if [ -f "$HOME/.zshrc" ]; then
-  SHELL_RC="$HOME/.zshrc"
-elif [ -f "$HOME/.bashrc" ]; then
-  SHELL_RC="$HOME/.bashrc"
-fi
-
-if [ -n "$SHELL_RC" ] && ! grep -q ".local/bin" "$SHELL_RC"; then
-  echo "" >> "$SHELL_RC"
-  echo "# Colors" >> "$SHELL_RC"
-  echo "$PATH_LINE" >> "$SHELL_RC"
-  echo "  Added ~/.local/bin to PATH in $SHELL_RC"
-fi
-
-# ── Setup wizard ──────────────────────────────────────────────────────────────
-
-echo ""
-echo "  ✓ Colors installed at $INSTALL_DIR"
-echo ""
-echo "  ─────────────────────────────────────────────"
-echo "  Before you run Colors, set two things:"
-echo ""
-echo "  1. Your AI API key (Colors never stores this):"
-echo "     export ANTHROPIC_API_KEY=sk-ant-..."
-echo ""
-echo "  2. Your memory passphrase (encrypts your memory store):"
-echo "     export COLORS_PASSPHRASE=something-only-you-know"
-echo ""
-echo "  Add both to your ~/.bashrc or ~/.zshrc so they persist."
-echo "  ─────────────────────────────────────────────"
-echo ""
-echo "  Then open Colors:"
-echo ""
-echo "    colors web      ← browser UI (recommended for most users)"
-echo "    colors chat     ← terminal"
-echo "    colors help     ← all commands"
-echo ""
-echo "  Telegram / Discord / WhatsApp:"
-echo "    colors channel telegram"
-echo "    colors channel discord"
-echo "    colors channel whatsapp"
-echo ""
+# ── Done ──────────────────────────────────────────────────────────────────────
+print ""
+print "  ${BOLD}Colors installed.${RESET}"
+print ""
+print "  ${CYAN}Add to your PATH if needed:${RESET}"
+print "  ${DIM}export PATH=\"\$HOME/.local/bin:\$PATH\"${RESET}"
+print ""
+print "  ${CYAN}Set your API key:${RESET}"
+print "  ${DIM}export ANTHROPIC_API_KEY=sk-ant-...${RESET}"
+print ""
+print "  ${CYAN}Start Colors:${RESET}"
+print "  ${DIM}colors chat${RESET}      # terminal"
+print "  ${DIM}colors web${RESET}       # browser UI"
+print ""
+print "  ${CYAN}Run the security demo:${RESET}"
+print "  ${DIM}cd $INSTALL_DIR && npm run demo:injection${RESET}"
+print ""
+print "  ${DIM}Research: github.com/thecolourfoundation/Color/blob/main/RESEARCH.md${RESET}"
+print ""
