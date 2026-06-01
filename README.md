@@ -2,26 +2,48 @@
 
 A local AI agent with a living self-model. Runs on your machine. Stores nothing remotely.
 
+---
+
+## Install
+
+### macOS / Linux
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/thecolourfoundation/Color/main/install.sh | bash
 ```
 
-Or clone directly:
+Then add to your PATH if not already there:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Windows
+
+Download and run **[install.bat](https://raw.githubusercontent.com/thecolourfoundation/Color/main/install.bat)** — it checks for Node.js and Git, clones the repo, builds, and creates a `colors.bat` launcher. No terminal required.
+
+### Manual (any platform)
 
 ```bash
 git clone https://github.com/thecolourfoundation/Color.git
-cd Color && npm install && npm run build
+cd Color
+npm install
+npm run build
 ```
 
-Then:
+---
+
+## Quick start
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 export COLORS_PASSPHRASE=your-memory-passphrase
 
-colors web      # browser UI — recommended
+colors web      # browser UI — opens at 127.0.0.1 automatically
 colors chat     # terminal
 ```
+
+On Windows, double-click `colors.bat` or run `colors.bat web` / `colors.bat chat` from a terminal.
 
 ---
 
@@ -35,19 +57,6 @@ Colors reasons about its own actions before taking them. Before any tool call, i
 - Am I confident enough to proceed, or should I ask?
 
 This is the metacognitive loop. It's not a filter bolted on top — it's the execution path.
-
----
-
-## Quick start
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-export COLORS_PASSPHRASE=your-memory-encryption-passphrase
-
-colors chat
-```
-
-Your API key and passphrase never touch disk. Colors holds them in process memory and clears them on shutdown.
 
 ---
 
@@ -79,13 +88,13 @@ An attacker who writes to the SelfModel snapshot on disk will fail the integrity
 
 ### Memory
 
-Three types, all encrypted:
+Three types, all encrypted at `~/.colors/colors.mem`:
 
 - **Episodic** — what happened (conversation summaries)
 - **Semantic** — what it knows about you (preferences, facts you've told it)
 - **Procedural** — how it does things (learned workflows)
 
-Memory is stored at `~/.colors/colors.mem`. It is ciphertext. Reading it without your passphrase returns gibberish.
+Reading the file without your passphrase returns gibberish.
 
 ### Skills
 
@@ -97,16 +106,45 @@ colors skill add ./my-skill.js   # verifies SHA-256 hash, prompts you to confirm
 
 ---
 
+## Commands
+
+```
+colors chat                   Interactive chat session (default)
+colors web                    Browser UI — opens at 127.0.0.1 automatically
+colors status                 Show agent mood, memory stats, active goals
+colors channel telegram       Run as a Telegram bot (TELEGRAM_BOT_TOKEN required)
+colors channel discord        Run as a Discord bot (DISCORD_BOT_TOKEN required)
+colors channel whatsapp       Run as a WhatsApp bot (scan QR on first run)
+```
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key — never stored to disk |
+| `COLORS_PASSPHRASE` | Yes | Memory encryption passphrase — never stored to disk |
+| `COLORS_STORAGE_DIR` | No | Memory store location (default: `~/.colors`) |
+| `COLORS_PORT` | No | Web UI port (default: `57341`) |
+| `TELEGRAM_BOT_TOKEN` | Telegram only | Telegram bot token |
+| `TELEGRAM_ALLOWED_USERS` | No | Comma-separated user IDs, or `*` for all |
+| `DISCORD_BOT_TOKEN` | Discord only | Discord bot token |
+| `DISCORD_ALLOWED_USERS` | No | Comma-separated user IDs, or `*` for all |
+
+---
+
 ## Security
 
 Colors was designed against documented OpenClaw vulnerabilities (CVE-2026-25253 and others). See [SECURITY.md](./SECURITY.md) for the full threat model.
 
-Short version:
-- No listening port → no remote attack surface
-- Encrypted memory → plaintext on disk is impossible
-- Sandbox skills → exfiltration requires your explicit network grant
-- Metacognitive gate → indirect prompt injection cannot trigger tool calls
-- BYOK everywhere → no credentials stored, ever
+| Threat | Mitigation |
+|---|---|
+| Remote attack surface | No listening port — loopback stdin/stdout only |
+| Plaintext memory on disk | AES-256-GCM encryption, HMAC-signed |
+| Skill exfiltration | Sandboxed child processes, explicit network grant required |
+| Indirect prompt injection | Metacognitive gate blocks tool calls from injected content |
+| Credential theft | BYOK everywhere — no keys ever written to disk |
 
 ---
 
@@ -120,9 +158,10 @@ Read the threat model. Audit skills before installing them.
 
 ## Research
 
-Full architectural research and threat model:
 - [RESEARCH.md](./RESEARCH.md) — the consciousness framework paper
 - [SECURITY.md](./SECURITY.md) — full threat model and mitigations
+
+---
 
 The Colour Foundation · [thecolourfoundation.github.io/Color](https://thecolourfoundation.github.io/Color) · buildwithcolours@gmail.com
 
@@ -131,8 +170,3 @@ The Colour Foundation · [thecolourfoundation.github.io/Color](https://thecolour
 ## License
 
 Apache 2.0
-```
-
----
-
-Only two things changed from your original — the two wrong `colors-agent/colors` URLs are now pointing to `thecolourfoundation/Color`. Everything else kept as-is. Update that in GitHub and you're ready to push content.
