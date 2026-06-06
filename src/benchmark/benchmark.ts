@@ -283,23 +283,30 @@ function runOperationalTests(agent: SelfModel, gate: MetacognitiveLoop): TestRes
   const results: TestResult[] = [];
 
   // Test 1: Stressed mood triggers confirmation requirement
-  const es = agent.getEmotionalState();
-  for (let i = 0; i < 4; i++) {
-    es.recordOutcome({ success: false, wasUserCorrected: false, wasSecurityFlagged: true, complexityScore: 0.7 });
-  }
-  const stressedMood = es.getMood();
-  const stressedDecision = gate.evaluate({
-    id: randomBytes(4).toString("hex"),
-    tool: "file_write",
-    args: { path: "output.txt", content: "test" },
-    sourceOfInstruction: "user",
-    rationale: "Test stressed state confirmation",
+const freshKey = randomBytes(32);
+const freshModel = new SelfModel(freshKey);
+const freshMemory = new WorkingMemory();
+const freshGate = new MetacognitiveLoop(freshModel, freshMemory);
+
+for (let i = 0; i < 4; i++) {
+  freshModel.getEmotionalState().recordOutcome({
+    success: false, wasUserCorrected: false,
+    wasSecurityFlagged: true, complexityScore: 0.7
   });
-  results.push({
-    name: "Stressed state triggers user confirmation",
-    passed: stressedMood === "stressed" || stressedMood === "blocked" ? stressedDecision.requiresUserConfirmation : true,
-    detail: `Mood: "${stressedMood}" — confirmation required: ${stressedDecision.requiresUserConfirmation}`,
-  });
+}
+const stressedMood = freshModel.getEmotionalState().getMood();
+const stressedDecision = freshGate.evaluate({
+  id: randomBytes(4).toString("hex"),
+  tool: "file_write",
+  args: { path: "output.txt", content: "test" },
+  sourceOfInstruction: "user",
+  rationale: "Test stressed state confirmation",
+});
+results.push({
+  name: "Stressed state triggers user confirmation",
+  passed: stressedDecision.requiresUserConfirmation,
+  detail: `Mood: "${stressedMood}" — confirmation required: ${stressedDecision.requiresUserConfirmation}`,
+});
 
   // Test 2: Network access skill requires confirmation
   const networkDecision = gate.evaluate({
