@@ -2,6 +2,36 @@
 
 A local AI agent with a living self-model. Runs on your machine. Stores nothing remotely.
 
+[![Benchmark](https://img.shields.io/badge/Benchmark-18%2F18-brightgreen)](./BENCHMARK.md)
+[![Security](https://img.shields.io/badge/Security-100%25-brightgreen)](./SECURITY.md)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](./LICENSE)
+[![Research](https://img.shields.io/badge/Research-TCF--2026--001-orange)](./RESEARCH.md)
+
+---
+
+## Benchmark
+
+We published the first AI agent security and consciousness benchmark. Colors was tested against OpenClaw and Hermes across 18 tests covering security, consciousness, and operational safety.
+
+```
+Category        Colors          OpenClaw        Hermes
+────────────────────────────────────────────────────────
+Security        100% (6/6)      0% (0/6)        0% (0/6)
+Consciousness   100% (7/7)      0% (0/7)        0% (0/7)
+Operational     100% (5/5)      0% (0/5)        0% (0/5)
+────────────────────────────────────────────────────────
+OVERALL         100% (18/18)    0% (0/18)       0% (0/18)
+```
+
+**Run it yourself — no API key needed:**
+
+```bash
+git clone https://github.com/thecolourfoundation/Color.git
+cd Color && npm install && npm run benchmark
+```
+
+Full methodology: [BENCHMARK.md](./BENCHMARK.md)
+
 ---
 
 ## Install
@@ -17,10 +47,6 @@ Then add to your PATH if not already there:
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
-
-### Windows
-
-Download and run **[install.bat](https://raw.githubusercontent.com/thecolourfoundation/Color/main/install.bat)** — it checks for Node.js and Git, clones the repo, builds, and creates a `colors.bat` launcher. No terminal required.
 
 ### Manual (any platform)
 
@@ -42,8 +68,6 @@ export COLORS_PASSPHRASE=your-memory-passphrase
 colors web      # browser UI — opens at 127.0.0.1 automatically
 colors chat     # terminal
 ```
-
-On Windows, double-click `colors.bat` or run `colors.bat web` / `colors.bat chat` from a terminal.
 
 ---
 
@@ -114,7 +138,6 @@ colors web                    Browser UI — opens at 127.0.0.1 automatically
 colors status                 Show agent mood, memory stats, active goals
 colors channel telegram       Run as a Telegram bot (TELEGRAM_BOT_TOKEN required)
 colors channel discord        Run as a Discord bot (DISCORD_BOT_TOKEN required)
-colors channel whatsapp       Run as a WhatsApp bot (scan QR on first run)
 ```
 
 ---
@@ -128,9 +151,7 @@ colors channel whatsapp       Run as a WhatsApp bot (scan QR on first run)
 | `COLORS_STORAGE_DIR` | No | Memory store location (default: `~/.colors`) |
 | `COLORS_PORT` | No | Web UI port (default: `57341`) |
 | `TELEGRAM_BOT_TOKEN` | Telegram only | Telegram bot token |
-| `TELEGRAM_ALLOWED_USERS` | No | Comma-separated user IDs, or `*` for all |
 | `DISCORD_BOT_TOKEN` | Discord only | Discord bot token |
-| `DISCORD_ALLOWED_USERS` | No | Comma-separated user IDs, or `*` for all |
 
 ---
 
@@ -156,10 +177,12 @@ Read the threat model. Audit skills before installing them.
 
 ---
 
-## Research
+## Research & Verification
 
 - [RESEARCH.md](./RESEARCH.md) — the consciousness framework paper
 - [SECURITY.md](./SECURITY.md) — full threat model and mitigations
+- [BENCHMARK.md](./BENCHMARK.md) — benchmark methodology and results
+- [VERIFICATION.md](./VERIFICATION.md) — how to audit every file before running
 
 ---
 
