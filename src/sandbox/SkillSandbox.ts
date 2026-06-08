@@ -198,5 +198,4 @@ export class SkillSandbox {
   unregisterSkill(name: string): void {
     this.manifests.delete(name);
   }
-    }
-      
+}
