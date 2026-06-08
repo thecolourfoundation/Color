@@ -8,6 +8,7 @@ import { existsSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { mkdirSync } from "fs";
+import { execFile } from "child_process"; // FIX: execFile not exec, no shell injection
 import { ColorsAgent } from "./ColorsAgent";
 
 const c = {
@@ -192,17 +193,52 @@ async function runReturningGreeting(agent: ColorsAgent): Promise<void> {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 function resolveConfig() {
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
+  // ─── FIX #7: Only accept ANTHROPIC_API_KEY — never fall back to OPENAI_API_KEY ──
+  // Previously: `process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY`
+  // That silently passed an OpenAI key to the Anthropic SDK, causing cryptic
+  // auth failures instead of a clear error message.
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
   if (!apiKey) {
-    console.error("\n" + c.red + "  [Colors] No API key found." + c.reset + "\n" + c.dim + "  Set ANTHROPIC_API_KEY or OPENAI_API_KEY.\n" + c.reset);
+    // ─── FIX #7: Warn explicitly if user mistakenly set OPENAI_API_KEY ────────
+    if (process.env.OPENAI_API_KEY) {
+      console.error(
+        "\n" + c.red + "  [Colors] Wrong API key variable." + c.reset +
+        "\n" + c.dim + "  You have OPENAI_API_KEY set, but Colors uses the Anthropic API." +
+        "\n" + "  Set ANTHROPIC_API_KEY instead:" +
+        "\n" + "    export ANTHROPIC_API_KEY=sk-ant-..." + c.reset + "\n"
+      );
+    } else {
+      console.error(
+        "\n" + c.red + "  [Colors] No API key found." + c.reset +
+        "\n" + c.dim + "  Set your Anthropic API key:" +
+        "\n" + "    export ANTHROPIC_API_KEY=sk-ant-..." + c.reset + "\n"
+      );
+    }
     process.exit(1);
   }
+
+  // ─── FIX #7: Basic key format sanity check ────────────────────────────────
+  if (!apiKey.startsWith("sk-ant-")) {
+    console.error(
+      "\n" + c.red + "  [Colors] API key looks wrong." + c.reset +
+      "\n" + c.dim + "  ANTHROPIC_API_KEY should start with 'sk-ant-'." +
+      "\n" + "  Got a key starting with: " + apiKey.slice(0, 8) + "..." + c.reset + "\n"
+    );
+    process.exit(1);
+  }
+
   const storageDir = process.env.COLORS_STORAGE_DIR || join(homedir(), ".colors");
   const passphrase = process.env.COLORS_PASSPHRASE;
   if (!passphrase) {
-    console.error("\n" + c.red + "  [Colors] No memory passphrase found." + c.reset + "\n" + c.dim + "  Set COLORS_PASSPHRASE.\n" + c.reset);
+    console.error(
+      "\n" + c.red + "  [Colors] No memory passphrase found." + c.reset +
+      "\n" + c.dim + "  Set COLORS_PASSPHRASE to encrypt your memory store:" +
+      "\n" + "    export COLORS_PASSPHRASE=your-secret-passphrase" + c.reset + "\n"
+    );
     process.exit(1);
   }
+
   return { apiKey, storageDir, passphrase };
 }
 
@@ -350,12 +386,27 @@ async function main() {
       const { WebUIServer } = await import("./WebUIServer");
       const agent = new ColorsAgent(config);
       const port = parseInt(process.env.COLORS_PORT || "57341", 10);
+      if (isNaN(port) || port < 1024 || port > 65535) {
+        console.error(c.red + "  [Colors] Invalid COLORS_PORT value." + c.reset);
+        process.exit(1);
+      }
       const server = new WebUIServer(agent, port);
       process.on("SIGINT", () => { server.stop(); agent.shutdown(); process.exit(0); });
       await server.start();
-      const { exec } = await import("child_process");
-      const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-      exec(`${opener} http://127.0.0.1:${port}`);
+
+      // ─── FIX: Use execFile instead of exec to avoid shell injection ───────
+      const openerMap: Record<string, string> = {
+        darwin: "open",
+        win32:  "cmd",
+        linux:  "xdg-open",
+      };
+      const openerBin = openerMap[process.platform] ?? "xdg-open";
+      const openerArgs = process.platform === "win32"
+        ? ["/c", "start", `http://127.0.0.1:${port}`]
+        : [`http://127.0.0.1:${port}`];
+      execFile(openerBin, openerArgs, (err) => {
+        if (err) console.log(c.dim + `  Open your browser: http://127.0.0.1:${port}` + c.reset);
+      });
       break;
     }
     case "channel": {
@@ -375,8 +426,8 @@ async function main() {
     channel discord     Run as Discord bot
 
   Env vars:
-    ANTHROPIC_API_KEY   Your API key (never stored)
-    COLORS_PASSPHRASE   Memory encryption passphrase (never stored)
+    ANTHROPIC_API_KEY   Your Anthropic API key (never stored to disk)
+    COLORS_PASSPHRASE   Memory encryption passphrase (never stored to disk)
     COLORS_STORAGE_DIR  Storage location (default: ~/.colors)
       `);
   }
@@ -386,4 +437,3 @@ main().catch((err) => {
   console.error(c.red + "\n  [Colors] Fatal: " + c.reset + err.message);
   process.exit(1);
 });
-    
