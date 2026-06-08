@@ -10,23 +10,38 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/cli.ts",
-    "web": "ts-node src/WebUIServer.ts",
+    "build:whatsapp": "tsc --project tsconfig.whatsapp.json",
+
+    "start": "node dist/cli.js",
+    "web": "node dist/WebUIServer.js",
     "dev": "ts-node src/cli.ts",
+
     "demo:injection": "ts-node src/demos/injection-demo.ts",
     "demo:memory": "ts-node src/demos/memory-demo.ts",
-    "benchmark": "ts-node src/benchmark/benchmark.ts",
-    "test": "jest",
-    "lint": "eslint src/**/*.ts"
+    "benchmark": "npm run typecheck && ts-node src/benchmark/benchmark.ts",
+
+    "typecheck": "tsc --noEmit",
+
+    "test": "npm run typecheck && jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "npm run typecheck && jest --coverage",
+
+    "lint": "eslint src/**/*.ts",
+
+    "ci": "npm run lint && npm run typecheck && jest --ci --forceExit"
   },
   "keywords": ["ai-agent", "local-ai", "privacy", "autonomous-agent", "secure", "prompt-injection"],
   "license": "Apache-2.0",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
-    "better-sqlite3": "^9.4.3",
+    "better-sqlite3": "^11.0.0",
     "express": "^4.21.2",
     "chalk": "^4.1.2",
     "ws": "^8.18.0"
+  },
+  "optionalDependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "@hapi/boom": "^10.0.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
@@ -42,7 +57,10 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0"
   },
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0 <27.0.0",
+    "npm": ">=9.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/thecolourfoundation/Color.git"
