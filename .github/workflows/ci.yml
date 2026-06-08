@@ -2,70 +2,50 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  test:
+  ci:
+    name: Lint · Typecheck · Test
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      matrix:
+        # Finding 005: test on both supported LTS versions.
+        # Node 26 is excluded until better-sqlite3 adds support.
+        node-version: [18.x, 20.x, 22.x]
 
-      - name: Use Node.js 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Finding 002: use `npm ci` (not `npm install`) so the committed
+      # lockfile is used exactly — no version drift between runs.
+      - name: Setup Node ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies (reproducible)
+        run: npm ci
 
-      - name: Install optional deps
-        run: npm install ws @types/ws
-
-      - name: Patch tsconfig
-        run: |
-          node -e "
-          const fs = require('fs');
-          const t = JSON.parse(fs.readFileSync('tsconfig.json','utf8'));
-          t.compilerOptions.skipLibCheck = true;
-          t.exclude = [
-            'node_modules','dist','tests',
-            'src/channels/WhatsAppAdapter.ts',
-            'src/channels/DiscordAdapter.ts'
-          ];
-          fs.writeFileSync('tsconfig.json', JSON.stringify(t,null,2));
-          "
-
+      # Finding 006: build must succeed before tests run.
       - name: Build
         run: npm run build
 
+      # Finding 001/006: typecheck + jest in one gated step.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
-        run: npm test
+        run: jest --ci --forceExit
 
-  build:
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-
-      - run: npm install
-      - run: npm install ws @types/ws
-      - name: Patch tsconfig
-        run: |
-          node -e "
-          const fs = require('fs');
-          const t = JSON.parse(fs.readFileSync('tsconfig.json','utf8'));
-          t.compilerOptions.skipLibCheck = true;
-          t.exclude = ['node_modules','dist','tests','src/channels/WhatsAppAdapter.ts','src/channels/DiscordAdapter.ts'];
-          fs.writeFileSync('tsconfig.json', JSON.stringify(t,null,2));
-          "
-      - run: npm run build
+      - name: Coverage
+        run: jest --ci --forceExit --coverage
+        if: matrix.node-version == '22.x'
