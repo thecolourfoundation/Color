@@ -22,6 +22,9 @@ import { ColorsAgent } from "./ColorsAgent";
 
 const BIND_HOST = "127.0.0.1"; // NEVER 0.0.0.0
 
+// ─── FIX #4a: Cap incoming request body size ─────────────────────────────────
+const MAX_BODY_BYTES = 64 * 1024; // 64 KB — more than enough for a chat message
+
 export class WebUIServer {
   private server: http.Server;
   private agent: ColorsAgent;
@@ -49,10 +52,33 @@ export class WebUIServer {
   private async handle(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = new URL(req.url || "/", `http://127.0.0.1`);
 
-    // CORS — localhost only
-    res.setHeader("Access-Control-Allow-Origin", `http://127.0.0.1:${this.port}`);
+    // ─── FIX #4b: Complete CORS headers including preflight support ───────────
+    const allowedOrigin = `http://127.0.0.1:${this.port}`;
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Max-Age", "86400"); // cache preflight 24h
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Content-Security-Policy", "default-src 'self'");
+
+    // ─── FIX #4b: Handle OPTIONS preflight explicitly ─────────────────────────
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // ─── FIX #4c: Validate Origin header on state-changing requests ───────────
+    // Prevents a page on another localhost port from POSTing to the agent.
+    if (req.method === "POST") {
+      const origin = req.headers["origin"];
+      if (origin && origin !== allowedOrigin) {
+        res.writeHead(403);
+        res.end(JSON.stringify({ error: "Forbidden: cross-origin POST rejected" }));
+        return;
+      }
+    }
 
     try {
       if (req.method === "GET" && url.pathname === "/") {
@@ -80,8 +106,24 @@ export class WebUIServer {
   }
 
   private async handleChat(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    const body = await this.readBody(req);
-    const { message } = JSON.parse(body);
+    // ─── FIX #4a: readBody now enforces MAX_BODY_BYTES ───────────────────────
+    let body: string;
+    try {
+      body = await this.readBody(req);
+    } catch (err: any) {
+      res.writeHead(413);
+      res.end(JSON.stringify({ error: err.message }));
+      return;
+    }
+
+    let message: string;
+    try {
+      ({ message } = JSON.parse(body));
+    } catch {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: "Invalid JSON" }));
+      return;
+    }
 
     if (!message?.trim()) {
       res.writeHead(400);
@@ -128,31 +170,50 @@ export class WebUIServer {
   }
 
   private handleReset(res: http.ServerResponse): void {
-    // Trigger a fresh session by shutting down and noting the reset
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ reset: true }));
-  }
-
-  private serveUI(res: http.ServerResponse): void {
-    const uiPath = path.join(__dirname, "ui", "index.html");
-    if (fs.existsSync(uiPath)) {
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(fs.readFileSync(uiPath));
-    } else {
-      // Serve inline UI if no build present
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(this.inlineUI());
+    // ─── FIX: Actually clear working memory instead of silent no-op ──────────
+    try {
+      this.agent.resetWorkingMemory();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ reset: true }));
+    } catch (err: any) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: err.message }));
     }
   }
 
-  private inlineUI(): string {
-    return fs.readFileSync(path.join(__dirname, "..", "ui", "index.html"), "utf8");
+  private serveUI(res: http.ServerResponse): void {
+    // Try built UI first, then fall back to source
+    const candidates = [
+      path.join(__dirname, "ui", "index.html"),
+      path.join(__dirname, "..", "ui", "index.html"),
+    ];
+    for (const uiPath of candidates) {
+      if (fs.existsSync(uiPath)) {
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(fs.readFileSync(uiPath));
+        return;
+      }
+    }
+    res.writeHead(404);
+    res.end("UI not found. Run `npm run build` first.");
   }
 
+  // ─── FIX #4a: Enforce body size limit ────────────────────────────────────
   private readBody(req: http.IncomingMessage): Promise<string> {
     return new Promise((resolve, reject) => {
       let body = "";
-      req.on("data", (chunk) => (body += chunk));
+      let bytes = 0;
+
+      req.on("data", (chunk: Buffer) => {
+        bytes += chunk.length;
+        if (bytes > MAX_BODY_BYTES) {
+          req.destroy(); // stop reading immediately
+          reject(new Error(`Request body too large (max ${MAX_BODY_BYTES / 1024}KB)`));
+          return;
+        }
+        body += chunk.toString();
+      });
+
       req.on("end", () => resolve(body));
       req.on("error", reject);
     });
