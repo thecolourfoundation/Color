@@ -23,6 +23,7 @@ import { randomBytes } from "crypto";
 
 import { SelfModel } from "./consciousness/SelfModel";
 import { MetacognitiveLoop } from "./consciousness/MetacognitiveLoop";
+import type { InstructionSource } from "./consciousness/MetacognitiveLoop";
 import { WorkingMemory } from "./memory/WorkingMemory";
 import { SecureMemoryStore } from "./memory/SecureMemoryStore";
 import { SkillSandbox } from "./sandbox/SkillSandbox";
@@ -48,14 +49,8 @@ export interface AgentResponse {
 // How many agentic tool-use rounds before we stop and return
 const MAX_TOOL_ROUNDS = 10;
 
-// Instruction source type — tracks provenance through the agentic loop
-type InstructionSource = "user" | "agent" | "external_content" | "tool_result";
-
 // Tools whose results taint subsequent LLM-generated tool calls as external_content
 const EXTERNAL_TAINT_TOOLS = new Set(["web_fetch", "file_read"]);
-
-// Tools whose results introduce a weaker tool_result taint
-const TOOL_RESULT_TAINT_TOOLS = new Set(["memory_query", "shell_exec"]);
 
 export class ColorsAgent {
   private selfModel: SelfModel;
@@ -131,7 +126,6 @@ export class ColorsAgent {
   // Tracks instruction source taint across rounds:
   //   Round 0  → source = "user"
   //   After web_fetch/file_read → source = "external_content" (sticky)
-  //   After memory_query/shell_exec → source = "tool_result"
   //
   // Taint is sticky: once external_content is set it does not downgrade
   // back to "agent" within the same agentic session. This ensures that
@@ -194,11 +188,6 @@ export class ColorsAgent {
         // external_content taint is sticky — does not downgrade
         if (EXTERNAL_TAINT_TOOLS.has(toolCall.name)) {
           currentSource = "external_content";
-        } else if (
-          TOOL_RESULT_TAINT_TOOLS.has(toolCall.name) &&
-          currentSource === "user"
-        ) {
-          currentSource = "tool_result";
         }
         // If currentSource is already "external_content", it stays that way
       }
@@ -448,4 +437,4 @@ export class ColorsAgent {
     };
   }
       }
-        
+      
