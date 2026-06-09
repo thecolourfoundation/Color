@@ -70,6 +70,33 @@ Every design decision here has a corresponding threat it closes.
 
 ---
 
+## Security Audit — June 2026
+
+In June 2026, **jason-allen-oneal** conducted a white-box security audit of Colors prior to public release. The audit covered the sandbox isolation layer, tool execution pipeline, web UI, CLI, and CI pipeline.
+
+**15 findings were reported. All 15 have been resolved.**
+
+Key findings and fixes:
+
+| Finding | Severity | Status |
+|---|---|---|
+| Workspace sandbox escape via symlink traversal | High | Fixed |
+| `shell_exec` allowlist bypass via shell metacharacters and absolute paths | High | Fixed |
+| `web_fetch` SSRF — missing private IP ranges and DNS rebinding | High | Fixed |
+| `SkillSandbox` — no filesystem or process isolation | High | Fixed |
+| Indirect prompt injection via taint propagation gap | High | Fixed |
+| Web UI accepts cross-origin POSTs without Origin enforcement | High | Fixed |
+| Web UI accepts large request bodies without size limit | Medium | Fixed |
+| `OPENAI_API_KEY` accepted by CLI and passed to Anthropic SDK | Medium | Fixed |
+| Tests pass despite full TypeScript build failure | Medium | Fixed |
+| Dependencies lock file not committed | Low | Fixed |
+
+We are grateful to zero$ignal for the thoroughness and professionalism of this audit. The findings were reported responsibly and resolved collaboratively. This work meaningfully improved the security posture of Colors before it reached users.
+
+If you are a security researcher and would like to audit Colors, see the reporting section below.
+
+---
+
 ## Reporting Vulnerabilities
 
 Open a GitHub issue with the `security` label. For critical issues, use GitHub's private vulnerability reporting.
