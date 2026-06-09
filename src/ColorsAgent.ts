@@ -113,13 +113,6 @@ export class ColorsAgent {
   }
 
   // ── Agentic loop ───────────────────────────────────────────────────────────
-  //
-  // Pattern: LLM responds → if tool_use blocks present →
-  //   for each: run through MetacognitiveLoop → execute if permitted →
-  //   feed tool_result back → LLM responds again → repeat until text-only response
-  //
-  // This is the loop that makes the consciousness layer real.
-  // No tool fires without going through the gate.
 
   private async runAgenticLoop(
     actionsTaken: string[],
@@ -129,8 +122,6 @@ export class ColorsAgent {
     const emotionalContext = this.selfModel.getEmotionalState().toContextString();
     const messages         = this.workingMemory.buildLLMMessages(systemPrompt, emotionalContext);
 
-    // We maintain a local message array for the multi-turn tool loop
-    // without polluting WorkingMemory until the loop is done
     const loopMessages: Anthropic.MessageParam[] = messages.slice(1) as Anthropic.MessageParam[];
 
     let rounds = 0;
@@ -146,20 +137,16 @@ export class ColorsAgent {
         tools:      this.buildAllToolDefinitions(),
       });
 
-      // Collect text from this response
       const textBlocks  = response.content.filter(b => b.type === "text") as Anthropic.TextBlock[];
       const toolBlocks  = response.content.filter(b => b.type === "tool_use") as Anthropic.ToolUseBlock[];
 
-      // If no tool calls — we're done
       if (toolBlocks.length === 0 || response.stop_reason === "end_turn") {
         return textBlocks.map(b => b.text).join("") ||
                "(Colors completed the task without a text response)";
       }
 
-      // Add the assistant's turn (including tool_use blocks) to loop messages
       loopMessages.push({ role: "assistant", content: response.content });
 
-      // Execute each tool call through the consciousness gate
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
       for (const toolCall of toolBlocks) {
@@ -173,7 +160,6 @@ export class ColorsAgent {
         toolResults.push(result);
       }
 
-      // Feed results back to the LLM
       loopMessages.push({ role: "user", content: toolResults });
     }
 
@@ -181,11 +167,6 @@ export class ColorsAgent {
   }
 
   // ── Gated tool execution ───────────────────────────────────────────────────
-  //
-  // This is the critical path. MetacognitiveLoop.evaluate() runs first.
-  // If it blocks: return a tool_result explaining the block.
-  // If it requires confirmation: return a tool_result asking the user.
-  // If permitted: dispatch to the correct executor.
 
   private async executeToolGated(
     toolCallId: string,
@@ -196,7 +177,6 @@ export class ColorsAgent {
   ): Promise<Anthropic.ToolResultBlockParam> {
     const actionId = randomBytes(4).toString("hex");
 
-    // ── Consciousness gate ────────────────────────────────────────
     const decision = this.metacognition.evaluate({
       id:                   actionId,
       tool,
@@ -227,7 +207,6 @@ export class ColorsAgent {
       };
     }
 
-    // ── Execute ───────────────────────────────────────────────────
     this.workingMemory.recordAction({ id: actionId, tool, args, outcome: "pending" });
 
     try {
@@ -267,7 +246,6 @@ export class ColorsAgent {
     tool: string,
     args: Record<string, unknown>
   ): Promise<unknown> {
-    // Memory tools — handled internally
     if (tool === "memory_query") {
       return this.longTermMemory.query(
         (args.type as any) ?? "semantic",
@@ -285,7 +263,6 @@ export class ColorsAgent {
       });
     }
 
-    // Skill execution — sandboxed subprocess
     if (tool === "skill_execute") {
       return this.sandbox.execute({
         skillName: args.skillName as string,
@@ -294,7 +271,6 @@ export class ColorsAgent {
       });
     }
 
-    // ToolRegistry — file, web, shell, math
     const registeredTool = this.tools.get(tool);
     if (registeredTool) {
       return registeredTool.executor(args);
@@ -336,7 +312,6 @@ export class ColorsAgent {
       },
     ];
 
-    // ToolRegistry tools (file, web, shell, math) — all go through the gate
     const registryTools = this.tools.toAnthropicTools() as Anthropic.Tool[];
 
     return [...memoryTools, ...registryTools];
@@ -409,6 +384,12 @@ export class ColorsAgent {
     );
     this.longTermMemory.persist();
     this.workingMemory.clear();
+  }
+
+  // ── FIX: Added for WebUIServer /reset endpoint ────────────────────────────
+  resetWorkingMemory(): void {
+    this.workingMemory.clear();
+    this.bootstrapWorkingMemory();
   }
 
   getStatus(): {
