@@ -11,6 +11,11 @@
  * The consciousness moat is only real if it sits on the actual execution path.
  * Every tool call, without exception, passes through MetacognitiveLoop.evaluate()
  * before any code runs.
+ *
+ * Fix (zero$ignal audit): sourceOfInstruction now tracks taint across the
+ * agentic loop. Tool calls following web_fetch or file_read are labeled
+ * "external_content", not "agent", so the gate correctly blocks injected
+ * tool calls even when they originate from LLM reasoning over external content.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -42,6 +47,15 @@ export interface AgentResponse {
 
 // How many agentic tool-use rounds before we stop and return
 const MAX_TOOL_ROUNDS = 10;
+
+// Instruction source type — tracks provenance through the agentic loop
+type InstructionSource = "user" | "agent" | "external_content" | "tool_result";
+
+// Tools whose results taint subsequent LLM-generated tool calls as external_content
+const EXTERNAL_TAINT_TOOLS = new Set(["web_fetch", "file_read"]);
+
+// Tools whose results introduce a weaker tool_result taint
+const TOOL_RESULT_TAINT_TOOLS = new Set(["memory_query", "shell_exec"]);
 
 export class ColorsAgent {
   private selfModel: SelfModel;
@@ -113,6 +127,16 @@ export class ColorsAgent {
   }
 
   // ── Agentic loop ───────────────────────────────────────────────────────────
+  //
+  // Tracks instruction source taint across rounds:
+  //   Round 0  → source = "user"
+  //   After web_fetch/file_read → source = "external_content" (sticky)
+  //   After memory_query/shell_exec → source = "tool_result"
+  //
+  // Taint is sticky: once external_content is set it does not downgrade
+  // back to "agent" within the same agentic session. This ensures that
+  // LLM-generated tool calls triggered by injected external content are
+  // correctly labeled and blocked by the MetacognitiveGate.
 
   private async runAgenticLoop(
     actionsTaken: string[],
@@ -121,10 +145,12 @@ export class ColorsAgent {
     const systemPrompt     = this.buildSystemPrompt();
     const emotionalContext = this.selfModel.getEmotionalState().toContextString();
     const messages         = this.workingMemory.buildLLMMessages(systemPrompt, emotionalContext);
-
     const loopMessages: Anthropic.MessageParam[] = messages.slice(1) as Anthropic.MessageParam[];
 
     let rounds = 0;
+
+    // Taint starts at "user" — the first tool call responds to a direct user message
+    let currentSource: InstructionSource = "user";
 
     while (rounds < MAX_TOOL_ROUNDS) {
       rounds++;
@@ -137,8 +163,8 @@ export class ColorsAgent {
         tools:      this.buildAllToolDefinitions(),
       });
 
-      const textBlocks  = response.content.filter(b => b.type === "text") as Anthropic.TextBlock[];
-      const toolBlocks  = response.content.filter(b => b.type === "tool_use") as Anthropic.ToolUseBlock[];
+      const textBlocks = response.content.filter(b => b.type === "text") as Anthropic.TextBlock[];
+      const toolBlocks = response.content.filter(b => b.type === "tool_use") as Anthropic.ToolUseBlock[];
 
       if (toolBlocks.length === 0 || response.stop_reason === "end_turn") {
         return textBlocks.map(b => b.text).join("") ||
@@ -150,14 +176,31 @@ export class ColorsAgent {
       const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
       for (const toolCall of toolBlocks) {
+        // Pass current taint state into the gate for this tool call
+        const sourceForThisCall: InstructionSource = currentSource;
+
         const result = await this.executeToolGated(
           toolCall.id,
           toolCall.name,
           toolCall.input as Record<string, unknown>,
           actionsTaken,
-          allFlags
+          allFlags,
+          sourceForThisCall
         );
+
         toolResults.push(result);
+
+        // Update taint state after this tool executes
+        // external_content taint is sticky — does not downgrade
+        if (EXTERNAL_TAINT_TOOLS.has(toolCall.name)) {
+          currentSource = "external_content";
+        } else if (
+          TOOL_RESULT_TAINT_TOOLS.has(toolCall.name) &&
+          currentSource === "user"
+        ) {
+          currentSource = "tool_result";
+        }
+        // If currentSource is already "external_content", it stays that way
       }
 
       loopMessages.push({ role: "user", content: toolResults });
@@ -173,16 +216,17 @@ export class ColorsAgent {
     tool: string,
     args: Record<string, unknown>,
     actionsTaken: string[],
-    allFlags: string[]
+    allFlags: string[],
+    sourceOfInstruction: InstructionSource = "agent"
   ): Promise<Anthropic.ToolResultBlockParam> {
     const actionId = randomBytes(4).toString("hex");
 
     const decision = this.metacognition.evaluate({
-      id:                   actionId,
+      id:                  actionId,
       tool,
       args,
-      sourceOfInstruction:  "agent",
-      rationale:            `LLM-requested tool call: ${tool}`,
+      sourceOfInstruction,
+      rationale:           `LLM-requested tool call: ${tool} (source: ${sourceOfInstruction})`,
     });
 
     allFlags.push(...decision.flags);
@@ -192,7 +236,7 @@ export class ColorsAgent {
       return {
         type:        "tool_result",
         tool_use_id: toolCallId,
-        content:     `BLOCKED by Colors security layer. Reason: ${decision.flags.join("; ")}`,
+        content:     `BLOCKED by Colors security layer. Reason: ${decision.flags.join("; ")}. Source: ${sourceOfInstruction}`,
         is_error:    true,
       };
     }
@@ -216,7 +260,7 @@ export class ColorsAgent {
         success: true, wasUserCorrected: false,
         wasSecurityFlagged: false, complexityScore: 0.5,
       });
-      actionsTaken.push(`${tool}: success`);
+      actionsTaken.push(`${tool}(source:${sourceOfInstruction}): success`);
 
       return {
         type:        "tool_result",
@@ -229,7 +273,7 @@ export class ColorsAgent {
         success: false, wasUserCorrected: false,
         wasSecurityFlagged: false, complexityScore: 0.5,
       });
-      actionsTaken.push(`${tool}: failed — ${err.message}`);
+      actionsTaken.push(`${tool}(source:${sourceOfInstruction}): failed — ${err.message}`);
 
       return {
         type:        "tool_result",
@@ -403,4 +447,5 @@ export class ColorsAgent {
       activeGoals: this.workingMemory.getGoals(),
     };
   }
-}
+      }
+        
