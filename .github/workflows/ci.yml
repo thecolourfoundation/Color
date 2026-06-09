@@ -44,8 +44,8 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: jest --ci --forceExit
+        run: npx jest --ci --forceExit
 
       - name: Coverage
-        run: jest --ci --forceExit --coverage
+        run: npx jest --ci --forceExit --coverage
         if: matrix.node-version == '22.x'
